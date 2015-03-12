@@ -10,11 +10,11 @@
 #include <iomanip>
 #include "Riostream.h"
 
-#include "ExRootTreeReader.h"
-#include "ExRootTreeWriter.h"
-#include "ExRootTreeBranch.h"
-#include "ExRootResult.h"
-#include "DelphesClasses.h"
+#include "external/ExRootAnalysis/ExRootTreeReader.h"
+#include "external/ExRootAnalysis/ExRootTreeWriter.h"
+#include "external/ExRootAnalysis/ExRootTreeBranch.h"
+#include "external/ExRootAnalysis/ExRootResult.h"
+#include "classes/DelphesClasses.h"
 
 #include "/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/src/HelAmps_sm.h"
 #include "/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/SubProcesses/P0_Sigma_sm_uux_epvemumvmx/CPPProcess.h"
@@ -74,12 +74,12 @@ public:
 
   double weight;
 
-  Double_t Px1=-150+300*Xarg[0];
-  Double_t Py1=-150+300*Xarg[1];
-  Double_t Pz1=-150+300*Xarg[2];
+  Double_t Px1=-500+1000*Xarg[0];
+  Double_t Py1=-500+1000*Xarg[1];
+  Double_t Pz1=-500+1000*Xarg[2];
   Double_t Px2=Met.Px()-Px1;
   Double_t Py2=Met.Py()-Py1;
-  Double_t Pz2=-150+300*Xarg[3];
+  Double_t Pz2=-500+1000*Xarg[3];
 
 
   Double_t E1= TMath::Sqrt(pow(Px1,2)+pow(Py1,2)+pow(Pz1,2));
@@ -121,75 +121,39 @@ public:
   // Evaluate matrix element
   process.sigmaKin();
 
-  double pdf1 = ComputePdf(2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
-  double pdf2 = ComputePdf(-2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
+  const Double_t* matrix_elements1 = process.getMatrixElements();
 
-  //cout << "pdf1 : " << pdf1 << " pdf2 : " << pdf2 << endl;
+  // Compute the Pdfs
+  double pdf1_1 = ComputePdf( 2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
+  double pdf1_2 = ComputePdf(-2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
 
-  //double PhaseSpaceIn = 1 / (4*TMath::Abs(q1Pz*q2Pz-q1Pz*(-q2Pz)));
+  double pdf2_1 = ComputePdf(-2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
+  double pdf2_2 = ComputePdf( 2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
 
-  double PhaseSpaceIn = 1 / (TMath::Abs(q1Pz/4000.0) *  TMath::Abs(q2Pz/4000.0) * pow(8000.0,2));
-  double PhaseSpaceOut = 1 / (pow(2*TMath::Pi(),8) * (2*p1.E()*2*nu1.E()*2*p2.E()*2*nu2.E()));
+  // Compute de Phase Space
+  double PhaseSpaceIn = 1.0 / ( 2.0 * TMath::Abs(q1Pz/4000.0) *  TMath::Abs(q2Pz/4000.0) * pow(8000.0,2));
 
-  const Double_t* matrix_elements = process.getMatrixElements();
+  double dphip1 = p1.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
+  double dphip2 = p2.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
+  double dphinu1 = 1/(pow(2*TMath::Pi(),3)*2*nu1.E()); // nu1.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
+  double dphinu2 = 1/(pow(2*TMath::Pi(),3)*2*nu2.E()); // nu2.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
 
-/*
-  std::cout << "Momenta:" << std::endl;
+  double PhaseSpaceOut = pow(2.0*TMath::Pi(),4) * 4/pow(8000.0,2) * dphip1 * dphip2 * dphinu1 * dphinu2;
 
-  for(int i=0;i < process.nexternal; i++)
-    std::cout << setw(4) << i+1
-         << setiosflags(ios::scientific) << setw(14) <<" " << p[i][0]
-         << setiosflags(ios::scientific) << setw(14) <<" " << p[i][1]
-         << setiosflags(ios::scientific) << setw(14) <<" " << p[i][2]
-         << setiosflags(ios::scientific) << setw(14) <<" " << p[i][3] << std::endl;
-  std::cout << " -----------------------------------------------------------------------------" << std::endl;
+  // Additional factor due to the integration range:
+  double jac = pow(1000,4);
 
-  // Display matrix elements
-  for(int i=0; i<process.nprocesses;i++)
-    std::cout << " Matrix element = "
-         << setiosflags(ios::fixed) << setprecision(17)
-         << matrix_elements[i]
-         << " GeV^" << -(2*process.nexternal-8) << std::endl;
+  // final integrand
+  double matrix_element = jac * (matrix_elements1[0] * pdf1_1 * pdf1_2 /*+ matrix_elements1[0] * pdf2_1 * pdf2_2*/) * PhaseSpaceIn * PhaseSpaceOut;
 
-  std::cout << " -----------------------------------------------------------------------------" << std::endl;
-  */
-
-  double matrix_element = matrix_elements[0] * pdf1 * pdf2 * PhaseSpaceIn * PhaseSpaceOut;
+  //cout << "|M|^2 = " << matrix_element << "     W :" << (p1+nu1).M() << " " << (p2+nu2).M() << endl;
   return matrix_element;
   }
 
 
-  //ClassDef(TFDISTR,1) //Class of testing functions for FOAM
-
-//ClassImp(TFDISTR)
-
-//int main(int argc, char** argv){
-/*
-Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
-};
-//ClassImp(TFDISTR)
-*/
-//int main(int argc, char** argv){
-
-
-//Double_t ComputePdf(char* argv[]){
-
   Double_t ComputePdf(int pid, double x, double q2){
-  /*
-    if (argc < 3) {
-      cerr << "You must specify a PDF set and member number" << endl;
-      return 1;
-      }
-  */
-    //const string setname = "cteq6l1";//argv[1];
-    //const string smem = 10042; //argv[2];
-    //const int imem = boost::lexical_cast<int>(smem);
-    //const PDF* pdf = mkPDF("cteq6l1", 0);
-
+    // return the xf(pid,x,q2), be careful: this value must be divided by x to obtain f
     const double xf = pdf->xfxQ2(pid, x, q2);
-
-
-    //std::cout << "pdf : " << xf << std::endl;
     return xf;
   }
 };
@@ -197,32 +161,24 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 
 Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 
-  //process.initProc("/home/fynu/amertens/scratch/MadGraph/madgraph5/w_cpp/Cards/param_card.dat");
-
-  //TH2D *hst = new TH2D("test","test",150,0,150,100,-50,0);
-  //TH2D *hst_Enu = new TH2D("test_2D", "test_2D", 150,0,150,150,0,150);
   TH1D *hst_Wm = new TH1D("test_1D", "test_1D", 150,0,150);
 
 
   TStopwatch chrono;
   std::cout << "initialising : " ;
-  //chrono->Start();
   // TFoam Implementation
   Double_t *MCvect =new Double_t[4];
   TRandom3  *PseRan   = new TRandom3();
-  PseRan->SetSeed(4357);  
+  PseRan->SetSeed(2245);  
   TFoam   *FoamX    = new TFoam("FoamX");
   FoamX->SetkDim(4);
-  FoamX->SetnCells(500);      // No. of cells, can be omitted, default=2000
-//  FoamX->SetRhoInt(Camel2);   // Set 2-dim distribution, included below
+  FoamX->SetnCells(4000);      // No. of cells, can be omitted, default=2000
 
   TString pdfname = "cteq6l1";
   Int_t imem = 0;
 
   TFoamIntegrand *rho= new TFDISTR("/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/Cards/param_card.dat", ep, mum, Met );
 
-
-  //rho->SetParamCard("/home/fynu/amertens/scratch/MadGraph/madgraph5/w_cpp/Cards/param_card.dat");
   FoamX->SetRho(rho);
   FoamX->SetPseRan(PseRan);   // Set random number generator
 
@@ -232,7 +188,6 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   std::cout << "CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << std::endl;
   chrono.Reset();
   chrono.Start();
-//  std::cout << std::endl;
   std::cout << "Looping over phase-space points" << std::endl;
 
 //  chrono->Reset();
@@ -241,15 +196,17 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   for(Long_t loop=0; loop<10000; loop++){
     FoamX->MakeEvent();          // generate MC event
     FoamX->GetMCvect( MCvect);   // get generated vector (x,y)
-    Double_t px1=-150+300*MCvect[0];
-    Double_t py1=-150+300*MCvect[1];
-    Double_t pz1=-150+300*MCvect[2];
-    Double_t pz2=-150+300*MCvect[3];
+    /*
+    Double_t px1=-500+1000*MCvect[0];
+    Double_t py1=-500+1000*MCvect[1];
+    Double_t pz1=-500+1000*MCvect[2];
+    Double_t pz2=-500+1000*MCvect[3];
     //if(loop<10) cout<<"(x,y) =  ( "<< x <<", "<< y <<" )"<<endl;
     TLorentzVector nu1,nu2;
     nu1.SetPxPyPzE(px1,py1,pz1,TMath::Sqrt(pow(px1,2)+pow(py1,2)+pow(pz1,2)));
-    
+    //cout << "W mass : " << (nu1+ep).M() << endl;  
     hst_Wm->Fill((nu1+ep).M());           // fill scattergram
+    */
    }// loop
 
 
@@ -258,8 +215,6 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   FoamX->GetIntegMC( mcResult, mcError);  // get MC integral, should be one
   
   std::cout << "CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << std::endl;
-//  chrono->Print();
-//  std::cout << std::endl;
 
   cout << " mcResult= " << mcResult << " +- " << mcError <<endl;
   // now hst_xy will be plotted visualizing generated distribution
@@ -270,63 +225,6 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 
   return mcResult;
 }
-
-/*
-Double_t MatrixElement(Int_t nDim, Double_t *Xarg ){
-
-
-  CPPProcess process;
-
-  // Read param_card and set parameters
-  process.initProc("/home/fynu/amertens/scratch/MadGraph/madgraph5/w_cpp/Cards/param_card.dat");
-
-  double weight;
-
-  Double_t EtaNu=Xarg[0];
-  Double_t ENu=Xarg[1];
-
-
-  TLorentzVector p1,p2;
-  p1.SetPtEtaPhiM(40,0,0,0);
-  p2.SetPtEtaPhiM(ENu,EtaNu,TMath::Pi(),0);
-
-  Double_t gEcm=80;
-
-  // momentum vector definition
-  vector<double*> p(1, new double[4]);
-  p[0][0] = gEcm; p[0][1] = 0.0; p[0][2] = 0.0; p[0][3] = gEcm;
-  p.push_back(new double[4]);
-  p[1][0] = gEcm; p[1][1] = 0.0; p[1][2] = 0.0; p[1][3] = -gEcm;
-  p.push_back(new double[4]);
-  p[2][0] = p1.E(); p[2][1] = p1.Px(); p[2][2] = p1.Py(); p[2][3] = p1.Pz();
-  p.push_back(new double[4]);
-  p[3][0] = p2.E(); p[3][1] = p2.Px(); p[3][2] = p2.Py(); p[3][3] = p2.Pz();
-
-
-  // Set momenta for this event
-  process.setMomenta(p);
-
-  // Evaluate matrix element
-  process.sigmaKin();
-
-  const Double_t* matrix_elements = process.getMatrixElements();
-
-  std::cout << "Momenta:" << std::endl;
-  std::cout << " -----------------------------------------------------------------------------" << std::endl;
-
-  // Display matrix elements
-  for(int i=0; i<process.nprocesses;i++)
-    std::cout << " Matrix element = "
-         << setiosflags(ios::fixed) << setprecision(17)
-         << matrix_elements[i]
-         << " GeV^" << -(2*process.nexternal-8) << std::endl;
-
-  std::cout << " -----------------------------------------------------------------------------" << std::endl;
-  
-  return matrix_elements;
-}
-*/
-
 
 
 int main(int argc, char *argv[])
@@ -356,7 +254,12 @@ int main(int argc, char *argv[])
   TFDISTR::SetPDF(pdfname, imem);
 */
 
-  ofstream fout("ww_weights.out");
+  double weight = 0;
+
+  ofstream fout(outputFile);
+
+  double madweight[10] = {5.70122210379e-16, 1.53206147539e-18, 9.33916724451e-17, 6.72210503551e-18, 2.27136432783e-16, 5.05485330753e-17, 4.05720785858e-16, 1.51874653102e-17, 6.68618012851e-17, 1.67333412761e-17};
+
   for(Int_t entry = 0; entry < 10; ++entry)//numberOfEntries; ++entry)
   {
     // Load selected branches with data from specified event
@@ -378,8 +281,8 @@ int main(int argc, char *argv[])
       }
     }
 
-
-  fout << entry << " " << ME(gen_ep, gen_mum, gen_Met) << endl;
+  weight = ME(gen_ep, gen_mum, gen_Met);
+  fout << entry << " " << weight << "   " << weight / (double) madweight[entry] << endl;
 
   
 
