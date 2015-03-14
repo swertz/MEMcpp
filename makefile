@@ -1,6 +1,6 @@
 BOOST_DIR := /usr/include/boost141
 
-DELPHES_DIR=/home/fynu/swertz/storage/Delphes/Delphes-3.1.2/
+DELPHES_DIR := home/fynu/swertz/storage/Delphes/Delphes-3.1.2/
 
 PROC_DIR := /home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/
 
