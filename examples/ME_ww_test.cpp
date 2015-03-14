@@ -16,10 +16,10 @@
 #include "external/ExRootAnalysis/ExRootResult.h"
 #include "classes/DelphesClasses.h"
 
-#include "/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/src/HelAmps_sm.h"
-#include "/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/SubProcesses/P0_Sigma_sm_uux_epvemumvmx/CPPProcess.h"
-#include "/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/src/rambo.h"
-#include "/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/src/Parameters_sm.h"
+#include "src/HelAmps_sm.h"
+#include "SubProcesses/P0_Sigma_sm_uux_epvemumvmx/CPPProcess.h"
+#include "src/rambo.h"
+#include "src/Parameters_sm.h"
 
 #include "TStopwatch.h"
 
@@ -41,8 +41,8 @@
 #include "TFoamIntegrand.h"
 #include "TRandom3.h"
 
-#include "/home/fynu/amertens/scratch/Reconstruction/LHAPDF-6.1.4/include/LHAPDF/LHAPDF.h"
-#include "/home/fynu/amertens/scratch/Reconstruction/LHAPDF-6.1.4/include/LHAPDF/PDFSet.h"
+#include "LHAPDF/LHAPDF.h"
+#include "LHAPDF/PDFSet.h"
 
 
 using namespace LHAPDF;
@@ -72,8 +72,6 @@ public:
   Double_t Density(int nDim, Double_t *Xarg){
   // Integrand for mFOAM
 
-  double weight;
-
   Double_t Px1=-500+1000*Xarg[0];
   Double_t Py1=-500+1000*Xarg[1];
   Double_t Pz1=-500+1000*Xarg[2];
@@ -97,14 +95,13 @@ public:
   Double_t q1Pz=(Pzext+Eext)/2;
   Double_t q2Pz=(Pzext-Eext)/2;
 
-
-  
+  //cout << "q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl;
 
   // momentum vector definition
   vector<double*> p(1, new double[4]);
   p[0][0] = q1Pz; p[0][1] = 0.0; p[0][2] = 0.0; p[0][3] = q1Pz;
   p.push_back(new double[4]);
-  p[1][0] = -q2Pz; p[1][1] = 0.0; p[1][2] = 0.0; p[1][3] = q2Pz;
+  p[1][0] = TMath::Abs(q2Pz); p[1][1] = 0.0; p[1][2] = 0.0; p[1][3] = q2Pz;
   p.push_back(new double[4]);
   p[2][0] = p1.E(); p[2][1] = p1.Px(); p[2][2] = p1.Py(); p[2][3] = p1.Pz();
   p.push_back(new double[4]);
@@ -114,35 +111,35 @@ public:
   p.push_back(new double[4]);
   p[5][0] = nu2.E(); p[5][1] = nu2.Px(); p[5][2] = nu2.Py(); p[5][3] = nu2.Pz();
 
-
-  // Set momenta for this event
-  process.setMomenta(p);
-
-  // Evaluate matrix element
-  process.sigmaKin();
-
-  const Double_t* matrix_elements1 = process.getMatrixElements();
-
   // Compute the Pdfs
   double pdf1_1 = ComputePdf( 2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
   double pdf1_2 = ComputePdf(-2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
 
-  double pdf2_1 = ComputePdf(-2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
-  double pdf2_2 = ComputePdf( 2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
+  //double pdf2_1 = ComputePdf(-2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
+  //double pdf2_2 = ComputePdf( 2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
 
   // Compute de Phase Space
-  double PhaseSpaceIn = 1.0 / ( 2.0 * TMath::Abs(q1Pz/4000.0) *  TMath::Abs(q2Pz/4000.0) * pow(8000.0,2));
+  double PhaseSpaceIn = 1.0 / ( TMath::Abs(q1Pz/4000.0) *  TMath::Abs(q2Pz/4000.0) * pow(8000.0,2)); // ? factor 2?
 
   double dphip1 = p1.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
   double dphip2 = p2.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
   double dphinu1 = 1/(pow(2*TMath::Pi(),3)*2*nu1.E()); // nu1.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
   double dphinu2 = 1/(pow(2*TMath::Pi(),3)*2*nu2.E()); // nu2.Pt()/(2.0*pow(2.0*TMath::Pi(),3));
 
-  double PhaseSpaceOut = pow(2.0*TMath::Pi(),4) * 4/pow(8000.0,2) * dphip1 * dphip2 * dphinu1 * dphinu2;
+  double PhaseSpaceOut = pow(2.0*TMath::Pi(),4) * 4./pow(8000.0,2) * dphip1 * dphip2 * dphinu1 * dphinu2;
 
   // Additional factor due to the integration range:
   double jac = pow(1000,4);
 
+  //cout << "phase space=" << jac * PhaseSpaceIn * PhaseSpaceOut << ", pdfprod=" << pdf1_1*pdf1_2 << "\n\n";
+
+  // Set momenta for this event
+  process.setMomenta(p);
+
+  // Evaluate matrix element
+  process.sigmaKin();
+  const Double_t* matrix_elements1 = process.getMatrixElements();
+  
   // final integrand
   double matrix_element = jac * (matrix_elements1[0] * pdf1_1 * pdf1_2 /*+ matrix_elements1[0] * pdf2_1 * pdf2_2*/) * PhaseSpaceIn * PhaseSpaceOut;
 
@@ -161,7 +158,7 @@ public:
 
 Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 
-  TH1D *hst_Wm = new TH1D("test_1D", "test_1D", 150,0,150);
+  //TH1D *hst_Wm = new TH1D("test_1D", "test_1D", 150,0,150);
 
 
   TStopwatch chrono;
@@ -175,7 +172,7 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   FoamX->SetnCells(4000);      // No. of cells, can be omitted, default=2000
 
   TString pdfname = "cteq6l1";
-  Int_t imem = 0;
+  //Int_t imem = 0;
 
   TFoamIntegrand *rho= new TFDISTR("/home/fynu/amertens/scratch/MadGraph/madgraph5/ww_cpp/Cards/param_card.dat", ep, mum, Met );
 
@@ -218,10 +215,10 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 
   cout << " mcResult= " << mcResult << " +- " << mcError <<endl;
   // now hst_xy will be plotted visualizing generated distribution
-  TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
+  /*TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
    c->cd();
    hst_Wm->Draw();
-   c->Print("Enu.png");
+   c->Print("Enu.png");*/
 
   return mcResult;
 }
@@ -242,7 +239,7 @@ int main(int argc, char *argv[])
 
   // Create object of class ExRootTreeReader
   ExRootTreeReader *treeReader = new ExRootTreeReader(&chain);
-  Long64_t numberOfEntries = treeReader->GetEntries();
+  //Long64_t numberOfEntries = treeReader->GetEntries();
 
   // Get pointers to branches used in this analysis
   TClonesArray *branchGen = treeReader->UseBranch("Particle");

@@ -1,4 +1,0 @@
-ROOT_INC=`root-config --incdir`
-ROOT_LIB=`root-config --libs`
-
-g++ -I $ROOT_INC $1.cpp -o $1.exe $ROOT_LIB -lFoam /home/fynu/amertens/scratch/MadGraph/madgraph5/w_cpp/SubProcesses/P0_Sigma_sm_udx_epve/CPPProcess.o  /home/fynu/amertens/scratch/MadGraph/madgraph5/w_cpp/src/*.o
