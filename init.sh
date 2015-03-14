@@ -1,6 +1,6 @@
 setup-root
 
-if [ "lhapdf" != *"module list"* ];
+if [ "lhapdf" != *`module list`* ];
 then
 	module load lhapdf/6.1
 fi
