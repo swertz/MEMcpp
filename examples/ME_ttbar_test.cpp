@@ -17,7 +17,7 @@
 #include "classes/DelphesClasses.h"
 
 #include "src/HelAmps_sm.h"
-#include "SubProcesses/P0_Sigma_sm_uux_epvemumvmx/CPPProcess.h"
+#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
 #include "src/rambo.h"
 #include "src/Parameters_sm.h"
 
@@ -72,24 +72,13 @@ public:
   Double_t Density(int nDim, Double_t *Xarg){
   // Integrand for mFOAM
 
-  //Double_t Px1=-500+1000*Xarg[0];
-  //Double_t Py1=-500+1000*Xarg[1];
-  //Double_t Pz1=-500+1000*Xarg[2];
-  //Double_t Px2=Met.Px()-Px1;
-  //Double_t Py2=Met.Py()-Py1;
-  //Double_t Pz2=-500+1000*Xarg[3];
-
-  Double_t Px1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[0]);
-  Double_t Py1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[1]);
-  Double_t Pz1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[2]);
+  Double_t Px1=-500+1000*Xarg[0];
+  Double_t Py1=-500+1000*Xarg[1];
+  Double_t Pz1=-500+1000*Xarg[2];
   Double_t Px2=Met.Px()-Px1;
   Double_t Py2=Met.Py()-Py1;
-  Double_t Pz2=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[3]);
+  Double_t Pz2=-500+1000*Xarg[3];
 
-
-  //cout << "x0=" << Xarg[0] << ", Px1=" << Px1 << ", x1=" << Xarg[1];
-  //cout << ", Py1=" << Py1 << ", x2=" << Xarg[2] << ", Pz1=" << Pz1;
-  //cout << ", x3=" << Xarg[3] << ", Pz2=" << Pz2;
 
   Double_t E1= TMath::Sqrt(pow(Px1,2)+pow(Py1,2)+pow(Pz1,2));
   Double_t E2= TMath::Sqrt(pow(Px2,2)+pow(Py2,2)+pow(Pz2,2));
@@ -105,11 +94,6 @@ public:
 
   Double_t q1Pz=(Pzext+Eext)/2;
   Double_t q2Pz=(Pzext-Eext)/2;
-
-  //cout << " ===> Eext=" << Eext << ", Pzext=" << Pzext << ", q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl;
-
-  if(q1Pz > 4000. || TMath::Abs(q2Pz) > 4000.)
-	return 0.;
 
   //cout << "q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl;
 
@@ -145,9 +129,7 @@ public:
   double PhaseSpaceOut = pow(2.0*TMath::Pi(),4) * 4./pow(8000.0,2) * dphip1 * dphip2 * dphinu1 * dphinu2;
 
   // Additional factor due to the integration range:
-  //double jac = pow(1000,4);
-  double jac = pow(TMath::Pi(),4.)/( pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[0]), 2.) * pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[1]), 2.)
-	* pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[2]), 2.) * pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[3]), 2.) );
+  double jac = pow(1000,4);
 
   //cout << "phase space=" << jac * PhaseSpaceIn * PhaseSpaceOut << ", pdfprod=" << pdf1_1*pdf1_2 << "\n\n";
 
@@ -187,7 +169,7 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   PseRan->SetSeed(2245);  
   TFoam   *FoamX    = new TFoam("FoamX");
   FoamX->SetkDim(4);
-  FoamX->SetnCells(20000);      // No. of cells, can be omitted, default=2000
+  FoamX->SetnCells(4000);      // No. of cells, can be omitted, default=2000
 
   TString pdfname = "cteq6l1";
   //Int_t imem = 0;
@@ -208,7 +190,7 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 //  chrono->Reset();
 //  chrono->Start();
 
-  for(Long_t loop=0; loop<50000; loop++){
+  for(Long_t loop=0; loop<10000; loop++){
     FoamX->MakeEvent();          // generate MC event
     FoamX->GetMCvect( MCvect);   // get generated vector (x,y)
     /*
@@ -275,7 +257,7 @@ int main(int argc, char *argv[])
 
   double madweight[10] = {5.70122210379e-16, 1.53206147539e-18, 9.33916724451e-17, 6.72210503551e-18, 2.27136432783e-16, 5.05485330753e-17, 4.05720785858e-16, 1.51874653102e-17, 6.68618012851e-17, 1.67333412761e-17};
 
-  for(Int_t entry = 0; entry < 5; ++entry)//numberOfEntries; ++entry)
+  for(Int_t entry = 0; entry < 10; ++entry)//numberOfEntries; ++entry)
   {
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
