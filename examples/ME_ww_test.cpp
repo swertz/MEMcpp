@@ -47,6 +47,7 @@
 
 using namespace LHAPDF;
 
+int mycount = 0;
 
 class TFDISTR: public TFoamIntegrand {
 private:
@@ -59,6 +60,7 @@ private:
 public:
   TFDISTR(std::string paramCardPath, TLorentzVector ep, TLorentzVector mum, TLorentzVector met){
   process.initProc(paramCardPath);
+  //process.setInitial(2, -2);
   p1 = ep;
   p2 = mum;
   Met = met;
@@ -87,9 +89,9 @@ public:
   Double_t Pz2=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[3]);
 
 
-  //cout << "x0=" << Xarg[0] << ", Px1=" << Px1 << ", x1=" << Xarg[1];
-  //cout << ", Py1=" << Py1 << ", x2=" << Xarg[2] << ", Pz1=" << Pz1;
-  //cout << ", x3=" << Xarg[3] << ", Pz2=" << Pz2;
+  /*cout << "x0=" << Xarg[0] << ", Px1=" << Px1 << ", x1=" << Xarg[1];
+  cout << ", Py1=" << Py1 << ", x2=" << Xarg[2] << ", Pz1=" << Pz1;
+  cout << ", x3=" << Xarg[3] << ", Pz2=" << Pz2;*/
 
   Double_t E1= TMath::Sqrt(pow(Px1,2)+pow(Py1,2)+pow(Pz1,2));
   Double_t E2= TMath::Sqrt(pow(Px2,2)+pow(Py2,2)+pow(Pz2,2));
@@ -98,20 +100,25 @@ public:
   nu1.SetPxPyPzE(Px1,Py1,Pz1,E1);
   nu2.SetPxPyPzE(Px2,Py2,Pz2,E2);
 
+  TLorentzVector tot = nu1 + nu2 + p1 + p2;
+
  // Double_t gEcm=(EEl+ENu)/2.0;
 
-  Double_t Eext=(p1+p2+nu1+nu2).E();
-  Double_t Pzext=(p1+p2+nu1+nu2).Pz();
+  Double_t Eext=tot.E();
+  Double_t Pzext=tot.Pz();
 
   Double_t q1Pz=(Pzext+Eext)/2;
   Double_t q2Pz=(Pzext-Eext)/2;
 
   //cout << " ===> Eext=" << Eext << ", Pzext=" << Pzext << ", q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl;
-
-  if(q1Pz > 4000. || TMath::Abs(q2Pz) > 4000.)
-	return 0.;
-
   //cout << "q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl;
+
+  if(q1Pz > 4000. || q2Pz < -4000. || q1Pz < 0. || q2Pz > 0.){
+	//cout << "Fail!" << endl;
+	mycount++;
+	return 0.;
+  }
+
 
   // momentum vector definition
   vector<double*> p(1, new double[4]);
@@ -128,11 +135,17 @@ public:
   p[5][0] = nu2.E(); p[5][1] = nu2.Px(); p[5][2] = nu2.Py(); p[5][3] = nu2.Pz();
 
   // Compute the Pdfs
-  double pdf1_1 = ComputePdf( 2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
-  double pdf1_2 = ComputePdf(-2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
+  double pdf1_1 = ComputePdf( 2,TMath::Abs(q1Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q1Pz/4000.0);
+  double pdf1_2 = ComputePdf(-2,TMath::Abs(q2Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q2Pz/4000.0);
 
-  //double pdf2_1 = ComputePdf(-2,TMath::Abs(q1Pz/4000.0), pow(Eext,2)) / TMath::Abs(q1Pz/4000.0);
-  //double pdf2_2 = ComputePdf( 2,TMath::Abs(q2Pz/4000.0), pow(Eext,2)) / TMath::Abs(q2Pz/4000.0);
+  double pdf2_1 = ComputePdf( 4,TMath::Abs(q1Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q1Pz/4000.0);
+  double pdf2_2 = ComputePdf(-4,TMath::Abs(q2Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q2Pz/4000.0);
+
+  double pdf3_1 = ComputePdf(-2,TMath::Abs(q1Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q1Pz/4000.0);
+  double pdf3_2 = ComputePdf( 2,TMath::Abs(q2Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q2Pz/4000.0);
+
+  double pdf4_1 = ComputePdf(-4,TMath::Abs(q1Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q1Pz/4000.0);
+  double pdf4_2 = ComputePdf( 4,TMath::Abs(q2Pz/4000.0), pow(tot.M(),2)) / TMath::Abs(q2Pz/4000.0);
 
   // Compute de Phase Space
   double PhaseSpaceIn = 1.0 / ( TMath::Abs(q1Pz/4000.0) *  TMath::Abs(q2Pz/4000.0) * pow(8000.0,2)); // ? factor 2?
@@ -159,7 +172,7 @@ public:
   const Double_t* matrix_elements1 = process.getMatrixElements();
   
   // final integrand
-  double matrix_element = jac * (matrix_elements1[0] * pdf1_1 * pdf1_2 /*+ matrix_elements1[0] * pdf2_1 * pdf2_2*/) * PhaseSpaceIn * PhaseSpaceOut;
+  double matrix_element = jac * (matrix_elements1[0] * pdf1_1 * pdf1_2 + matrix_elements1[0] * pdf2_1 * pdf2_2 + matrix_elements1[1] * pdf3_1 * pdf3_2 + matrix_elements1[1] * pdf4_1 * pdf4_2) * PhaseSpaceIn * PhaseSpaceOut;
 
   //cout << "|M|^2 = " << matrix_element << "     W :" << (p1+nu1).M() << " " << (p2+nu2).M() << endl;
   return matrix_element;
@@ -176,7 +189,8 @@ public:
 
 Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 
-  //TH1D *hst_Wm = new TH1D("test_1D", "test_1D", 150,0,150);
+  TH1D *hst_Wm = new TH1D("test_1D", "test_1D", 150,0,150);
+  TH1D *hst_We = new TH1D("test_1Db", "test_1D", 150,0,150);
 
 
   TStopwatch chrono;
@@ -187,7 +201,7 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   PseRan->SetSeed(2245);  
   TFoam   *FoamX    = new TFoam("FoamX");
   FoamX->SetkDim(4);
-  FoamX->SetnCells(20000);      // No. of cells, can be omitted, default=2000
+  FoamX->SetnCells(4000);      // No. of cells, can be omitted, default=2000
 
   TString pdfname = "cteq6l1";
   //Int_t imem = 0;
@@ -208,20 +222,29 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
 //  chrono->Reset();
 //  chrono->Start();
 
-  for(Long_t loop=0; loop<50000; loop++){
+  for(Long_t loop=0; loop<20000; loop++){
+    int count_old = mycount;
     FoamX->MakeEvent();          // generate MC event
     FoamX->GetMCvect( MCvect);   // get generated vector (x,y)
-    /*
-    Double_t px1=-500+1000*MCvect[0];
+    
+    /*Double_t px1=-500+1000*MCvect[0];
     Double_t py1=-500+1000*MCvect[1];
     Double_t pz1=-500+1000*MCvect[2];
-    Double_t pz2=-500+1000*MCvect[3];
+    Double_t pz2=-500+1000*MCvect[3];*/
+	Double_t px1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*MCvect[0]);
+  	Double_t py1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*MCvect[1]);
+  	Double_t pz1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*MCvect[2]);
+  	Double_t pz2=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*MCvect[3]);
     //if(loop<10) cout<<"(x,y) =  ( "<< x <<", "<< y <<" )"<<endl;
     TLorentzVector nu1,nu2;
     nu1.SetPxPyPzE(px1,py1,pz1,TMath::Sqrt(pow(px1,2)+pow(py1,2)+pow(pz1,2)));
+    nu2.SetPxPyPzE(Met.Px()-px1,Met.Py()-py1,pz2,TMath::Sqrt(pow(Met.Px()-px1,2)+pow(Met.Py()-py1,2)+pow(pz2,2)));
     //cout << "W mass : " << (nu1+ep).M() << endl;  
-    hst_Wm->Fill((nu1+ep).M());           // fill scattergram
-    */
+	if(count_old == mycount){
+		hst_We->Fill((nu1+ep).M());           // fill scattergram
+		hst_Wm->Fill((nu2+mum).M());           // fill scattergram
+	}
+    
    }// loop
 
 
@@ -230,13 +253,28 @@ Double_t ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector Met){
   FoamX->GetIntegMC( mcResult, mcError);  // get MC integral, should be one
   
   std::cout << "CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << std::endl;
+  cout << "nr. fails: " << mycount;
 
   cout << " mcResult= " << mcResult << " +- " << mcError <<endl;
   // now hst_xy will be plotted visualizing generated distribution
-  /*TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
+  TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
    c->cd();
+   hst_We->Draw();
+   c->Print("Enu.png");
+   delete hst_We;
+   delete c;
+  
+  TCanvas *c2 = new TCanvas("c","Canvas for plotting",600,600);
+   c2->cd();
    hst_Wm->Draw();
-   c->Print("Enu.png");*/
+   c2->Print("Munu.png");
+   delete hst_Wm;
+   delete c2;
+
+
+  delete FoamX;
+  delete PseRan;
+  delete MCvect;
 
   return mcResult;
 }
@@ -275,7 +313,7 @@ int main(int argc, char *argv[])
 
   double madweight[10] = {5.70122210379e-16, 1.53206147539e-18, 9.33916724451e-17, 6.72210503551e-18, 2.27136432783e-16, 5.05485330753e-17, 4.05720785858e-16, 1.51874653102e-17, 6.68618012851e-17, 1.67333412761e-17};
 
-  for(Int_t entry = 0; entry < 5; ++entry)//numberOfEntries; ++entry)
+  for(Int_t entry = 0; entry < 3; ++entry)//numberOfEntries; ++entry)
   {
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
@@ -295,11 +333,12 @@ int main(int argc, char *argv[])
 	else if (gen->PID == -14) gen_Met += gen->P4();
       }
     }
+	//gen_Met.SetPz(0.);
 
   weight = ME(gen_ep, gen_mum, gen_Met);
   fout << entry << " " << weight << "   " << weight / (double) madweight[entry] << endl;
 
-  
 
   }
+ delete treeReader; 
 }

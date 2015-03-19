@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <complex>
 #include "Riostream.h"
 
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
@@ -47,13 +48,89 @@
         ( std::ostringstream() << std::dec << x ).str()
 
 using namespace LHAPDF;
+using namespace std::literals;
+using namespace std;
+
+typedef complex<double> cd;
+
+bool solveQuartic(double a, double b, double c, double d, double e, vector<double>& roots){
+	// see http://en.wikipedia.org/wiki/Quartic_function#Solving_a_quartic_equation
+	
+	if(a == 0.)
+		return false;
+	
+	/*double delta = 256.*pow(a,3.)*pow(e,3.) - 192.*pow(a,2.)*b*d*pow(e,2.) - 128.*pow(a*c*e,2.)
+		+ 144.*c*e*pow(a*d,2.) - 27.*pow(a,2.)*pow(d,4.) + 144.*a*c*pow(b*e,2.) - 6.*a*e*pow(b*d,2.)
+		- 80.*a*b*d*e*pow(c,2.) + 18.*a*b*c*pow(d,3.) + 16*a*e*pow(c,4.) - 4.a*pow(c,3.)*pow(d,2.)
+		- 27.*pow(b,4.)*pow(e,2.) + 18*c*d*e*pow(b,3.) - 4.*pow(d*b,3.) - 4.*e*pow(b,2.)*pow(c,3.)
+		+ pow(b*c*d,2.);*/
+	
+	cd delta0 = pow(c,2.) - 3.*b*d + 12.*a*e;
+	cd delta1 = 2.*pow(c,3.) - 9.*b*c*d + 27.*pow(b,2)*e + 27.*a*pow(d,2.) - 72.*a*c*e;
+	cd p = (8.*a*c - 3.*pow(b,2.))/(8.*pow(a,2.));
+	cd q = (pow(b,3.) - 4.*a*b*c + 8.*pow(a,2.)*d)/(8*pow(a,3.));
+
+	cd Q = pow( ( delta1 + sqrt( pow(delta1,2.) - 4.*pow(delta0,3.) ) )/2., 1./3.);
+	cd S = 0.5 * sqrt( -2./3. * p + 1./(3.*a) * ( Q + delta0/Q ) );
+
+	// four solutions
+	
+	cd x1 = -b/(4.*a) - S + 0.5 * sqrt( -4.*pow(S,2.) - 2.*p + q/S );
+	cd x2 = -b/(4.*a) - S - 0.5 * sqrt( -4.*pow(S,2.) - 2.*p + q/S );
+
+	cd x3 = -b/(4.*a) + S + 0.5 * sqrt( -4.*pow(S,2.) - 2.*p - q/S );
+	cd x4 = -b/(4.*a) + S - 0.5 * sqrt( -4.*pow(S,2.) - 2.*p - q/S );
+
+	// checking which ones are real
+	
+	if( abs(imag(x1)) < pow(10,-15) )
+		roots.push_back(real(x1));
+	
+	if( abs(imag(x2)) < pow(10,-15) )
+		roots.push_back(real(x2));
+	
+	if( abs(imag(x3)) < pow(10,-15) )
+		roots.push_back(real(x3));
+	
+	if( abs(imag(x4)) < pow(10,-15) )
+		roots.push_back(real(x4));
+
+	return true;
+}
+
+bool solve2Quads(double a11, double a22, double a12, double a10, double a01, double a00,
+				double b11, double b22, double b12, double b10, double b01, double b00,
+				vector<double>& E1, vector<double>& E2){
+	double alpha = b11*a22-a11*b22;
+	double beta = b11*a12-a11*b12;
+	double gamma = b11*a10-a11*b10;
+	double delta = b11*a01-a11*b01;
+	double omega = b11*a00-a11*b00;
+
+	double a = a11*pow(alpha,2.) + a22*pow(delta,2.) - a12*alpha*beta;
+	double b = 2.*a11*alpha*delta - a12*alpha*gamma - a12*delta*beta - a10*alpha*beta + 2.*a22*beta*gamma;
+	double c = a11*pow(delta,2.) + 2.*a11*alpha*omega - a12*delta*gamma - a12*omega*beta - a10*alpha*gamma - a10*delta*beta
+		+ a22*pow(gamma,2.) + 2.*a01*beta*gamma + a00*pow(beta,2.);
+	double d = 2.*a11*delta*omega - a12*omega*gamma - a10*delta*gamma - a10*omega*beta + a01*pow(gamma,2.) + 2.*a00*beta*gamma;
+	double e = a11*pow(omega,2.) - a10*omega*gamma + a00*pow(gamma,2.);
+
+	solveQuartic(a, b, c, d, e, E2);
+
+	for(unsigned int i =0; i < E2.size(); ++i){
+		double e2 = E2.at(i);
+		double e1 = -(alpha * pow(e2,2.) + delta*e2 + omega)/(beta*e2 + gamma);
+		E1.push_back(e1);
+	}
+
+	return true;
+}
 
 int mycount = 0, count_wgt = 0, count_perm=1;
 
 class TFDISTR: public TFoamIntegrand {
 private:
   CPPProcess process;
-  TLorentzVector pep, pmum, pb, pbbar;
+  TLorentzVector p3, p4, p5, p6;
   TLorentzVector Met;
 
   const PDF *pdf;
@@ -61,43 +138,98 @@ private:
 public:
   TFDISTR(std::string paramCardPath, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector met){
   process.initProc(paramCardPath);
-  //process.setInitial(2, -2);
-  pep = ep;
-  pmum = mum;
-  pb = b;
-  pbbar = bbar;
+  p3 = ep;
+  p5 = mum;
+  p4 = b;
+  p6 = bbar;
   Met = met;
   pdf=LHAPDF::mkPDF("cteq6l1", 0);
-  }
-/*
-  static void SetPDF(TString name, Int_t imem){
-    *pdf = mkPDF("cteq6l1", 0);
-    }
-*/
+  
   Double_t Density(int nDim, Double_t *Xarg){
   // Integrand for mFOAM
-
-  //Double_t Px1=-500+1000*Xarg[0];
-  //Double_t Py1=-500+1000*Xarg[1];
-  //Double_t Pz1=-500+1000*Xarg[2];
-  //Double_t Px2=Met.Px()-Px1;
-  //Double_t Py2=Met.Py()-Py1;
-  //Double_t Pz2=-500+1000*Xarg[3];
-
-  Double_t Px1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[0]);
-  Double_t Py1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[1]);
-  Double_t Pz1=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[2]);
-  Double_t Px2=Met.Px()-Px1;
-  Double_t Py2=Met.Py()-Py1;
-  Double_t Pz2=TMath::Tan(-TMath::Pi()/2. + TMath::Pi()*Xarg[3]);
+  
+  double range1 = TMath::Pi()/2. + TMath::Arctan(M_W/G_W);
+  double y1 = - TMath::Arctan(M_W/G_W) + range1 * Xarg[0];
+  double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
 
 
-  /*cout << "x0=" << Xarg[0] << ", Px1=" << Px1 << ", x1=" << Xarg[1];
-  cout << ", Py1=" << Py1 << ", x2=" << Xarg[2] << ", Pz1=" << Pz1;
-  cout << ", x3=" << Xarg[3] << ", Pz2=" << Pz2;*/
+  double range2 = TMath::Pi()/2. + TMath::Arctan(M_T/G_T);
+  double y2 = - TMath::Arctan(M_T/G_T) + range2 * Xarg[1];
+  double s134 = M_T * G_T * TMath::Tan(y2) + pow(M_T,2.);
 
-  Double_t E1= TMath::Sqrt(pow(Px1,2)+pow(Py1,2)+pow(Pz1,2));
-  Double_t E2= TMath::Sqrt(pow(Px2,2)+pow(Py2,2)+pow(Pz2,2));
+
+  double range3 = TMath::Pi()/2. + TMath::Arctan(M_W/G_W);
+  double y3 = - TMath::Arctan(M_W/G_W) + range3 * Xarg[2];
+  double s25 = M_W * G_W * TMath::Tan(y3) + pow(M_W,2.);
+
+
+  double range4 = TMath::Pi()/2. + TMath::Arctan(M_T/G_T);
+  double y4 = - TMath::Arctan(M_T/G_T) + range4 * Xarg[3];
+  double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
+
+
+  TLorentzVector pT = p3 + p4 + p5 + p6;
+  pT.SetPz(0.);
+
+  double p34 = p3*p4;
+  double p56 = p5*p6;
+  double p33 = p5.M2();
+  double p44 = p4.M2();
+  double p55 = p5.M2();
+  double p66 = p6.M2();
+
+  double A1 = 2.*( -p3.Px() + p3.Pz()*p4.Px()/p4.Pz() );
+  double A2 = 2.*( p5.Px() - p5.Pz()*p6.Px()/p6.Pz() );
+  
+  double B1 = 2.*( -p3.Py() + p3.Pz()*p4.Py()/p4.Pz() );
+  double B2 = 2.*( p5.Py() - p5.Pz()*p6.Py()/p6.Pz() );
+
+  double Dx = B2*A1 - B1*A2;
+  double Dy = A2*B1 - A1*B2;
+
+  double X = 2*( pT.Px()*p5.Px() + pT.Py()*p5.Py() - p5.Pz()/p6.Pz()*( 0.5*(s25 - s256 + p56 + p66) + pT.Px()*p6.Px() + pT.Py()*p6.Py() ) ) + p55 - s25;
+  double Y = p3.Pz()/p4.Pz()*( s13 - s134 + p34 + p44 ) - p33 + s13;
+  
+  double alpha1 = -2*B2*(p3.E() - p4.E()*p3.Pz()/p4.Pz())/Dx;
+  double beta1 = 2*B1*(p5.E() - p6.E()*p5.Pz()/p6.Pz())/Dx;
+  double gamma1 = B1*X/Dx + B2*Y/Dx;
+
+  double alpha2 = -2*A2*(p3.E() - p4.E()*p3.Pz()/p4.Pz())/Dy;
+  double beta2 = 2*A1*(p5.E() - p6.E()*p5.Pz()/p6.Pz())/Dy;
+  double gamma2 = A1*X/Dy + A2*Y/Dy;
+
+  double alpha3 = (p4.E() - alpha1*p4.Px() - alpha2*p4.Py())/p4.Pz();
+  double beta3 = -(beta1*p4.Px() + beta2*p4.Py())/p4.Pz();
+  double gamma3 = ( 0.5*(s13 - s134 + p34 + p44) - gamma1*p4.Px() - gamma2*p4.Py() )/p4.Pz();
+
+  double alpha4 = (alpha1*p6.Px() + alpha2*p6.Py())/p6.Pz();
+  double beta4 = (p6.E() + beta1*p6.Px() + beta2*p6.Py())/p6.Pz();
+  double gamma4 = ( 0.5*(s25 - s256 + p56 + p66) - (gamma1 + pT.Px())*p6.Px() - (gamma2 + pT.Py())*p6.Py() )/p6.Pz();
+
+  double alpha5 = -alpha1;
+  double beta5 = -beta1;
+  double gamma5 = -pT.Px() - gamma1;
+
+  double alpha6 = -alpha2;
+  double beta6 = -beta2;
+  double gamma6 = -pT.Py() - gamma2;
+
+  double a11 = 1 - ( pow(alpha1,2.) + pow(alpha2,2.) + pow(alpha3,2.) );
+  double a22 = - ( pow(beta1,2.) + pow(beta2,2.) + pow(beta3,2.) );
+  double a12 = - 2.*( alpha1*beta1 + alpha2*beta2 + alpha3*beta3 );
+  double a10 = - 2.*( alpha1*gamma1 + alpha2*gamma2 + alpha3*gamma3 );
+  double a01 = - 2.*( beta1*gamma1 + beta2*gamma2 + beta3*gamma3 );
+  double a00 = - ( pow(gamma1,2.) + pow(gamma2,2.) + pow(gamma3,2.) );
+
+  double b11 = 1 - ( pow(alpha5,2.) + pow(alpha6,2.) + pow(alpha4,2.) );
+  double b22 = - ( pow(beta5,2.) + pow(beta6,2.) + pow(beta4,2.) );
+  double b12 = - 2.*( alpha5*beta5 + alpha6*beta6 + alpha4*beta4 );
+  double b10 = - 2.*( alpha5*gamma5 + alpha6*gamma6 + alpha4*gamma4 );
+  double b01 = - 2.*( beta5*gamma5 + beta6*gamma6 + beta4*gamma4 );
+  double b00 = - ( pow(gamma5,2.) + pow(gamma6,2.) + pow(gamma4,2.) );
+
+  vector<double> E1, E2;
+  solve2Quads(a11, a22, a12, a10, a01, a00, b11, b22, b12, b10, b01, b00, E1, E2);
 
   TLorentzVector nu1,nu2;
   nu1.SetPxPyPzE(Px1,Py1,Pz1,E1);
@@ -171,7 +303,6 @@ public:
   double PhaseSpaceOut = pow(2.0*TMath::Pi(),4) * 4./pow(13000.0,2) * dphipep * dphipmum * dphipb * dphipbbar * dphinu1 * dphinu2;
 
   // Additional factor due to the integration range:
-  //double jac = pow(1000,4);
   double jac = pow(TMath::Pi(),4.)/( pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[0]), 2.) * pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[1]), 2.)
 	* pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[2]), 2.) * pow(TMath::Cos(-TMath::Pi()/2. + TMath::Pi()*Xarg[3]), 2.) );
 
