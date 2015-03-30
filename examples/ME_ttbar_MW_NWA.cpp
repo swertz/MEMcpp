@@ -33,7 +33,6 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TGraph.h"
-#include "TGraphErrors.h"
 #include "TPad.h"
 #include "TCanvas.h"
 #include "TSystem.h"
@@ -52,8 +51,6 @@
 
 #define M_W 80.419
 #define G_W 2.0476
-
-#define SQRT_S 13000
 
 #define SSTR( x ) dynamic_cast< std::ostringstream & > \
         ( std::ostringstream() << std::dec << x ).str()
@@ -309,9 +306,7 @@ TFDISTR::TFDISTR(std::string paramCardPath, TLorentzVector ep, TLorentzVector mu
   p3 = ep;
   p5 = mum;
   p4 = b;
-  p4.SetE(p4.P());
   p6 = bbar;
-  p6.SetE(p6.P());
   Met = met;
   pdf=LHAPDF::mkPDF("cteq6l1", 0);
 }
@@ -373,10 +368,10 @@ double TFDISTR::Density(int nDim, double *Xarg){
   //cout << "y4=" << y4 << ", m256=" << TMath::Sqrt(s256) << endl;
 
   // #### FOR NWA
-  /*s13 = pow(M_W,2.);
+  s13 = pow(M_W,2.);
   s134 = pow(M_T,2.);
   s25 = pow(M_W,2.);
-  s256 = pow(M_T,2.);*/
+  s256 = pow(M_T,2.);
 
   // pT = transverse total momentum of the visible particles
   //TLorentzVector pT = p3 + p4 + p5 + p6;
@@ -474,19 +469,21 @@ double TFDISTR::Density(int nDim, double *Xarg){
 
   //integrand = BreitWigner(s13,M_W,G_W) * BreitWigner(s25,M_W,G_W) * BreitWigner(s134,M_T,G_T) * BreitWigner(s256,M_T,G_T);
 
-  /*unsigned int i = 0;
+  unsigned int i = 0;
+  if(E1.size() >= 2){
   if(E1.at(0) > E1.at(1))
 	i = 0;
   else
-    i = 1;*/
+    i = 1;
+  }
 
-  for(unsigned int i=0; i<E1.size(); i++){
+  //for(unsigned int i=0; i<E1.size(); i++){
 	//break;
 
 	double e1 = E1.at(i);
 	double e2 = E2.at(i);
 
-	//cout << endl << "## Evaluating Matrix Element based on solutions e1 = " << e1 << ", e2 = " << e2 << endl << endl;
+	cout << endl << "## Evaluating Matrix Element based on solutions e1 = " << e1 << ", e2 = " << e2 << endl << endl;
 
 	if(e1 < 0. || e2 < 0.){
 		mycount++;
@@ -512,7 +509,7 @@ double TFDISTR::Density(int nDim, double *Xarg){
 	TLorentzVector p25 = p2 + p5;
 	TLorentzVector p256 = p2 + p5 + p6;
 
-	/*cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
+	cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
 	cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
 	
 	cout << "Electron (E,Px,Py,Pz) = ";
@@ -526,7 +523,7 @@ double TFDISTR::Density(int nDim, double *Xarg){
   	cout << "Muon neutrino (E,Px,Py,Pz) = ";
   	cout << p2.E() << "," << p2.Px() << "," << p2.Py() << "," << p2.Pz() << endl;
   	cout << "Anti b quark (E,Px,Py,Pz) = ";
-  	cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;*/
+  	cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;
   
 	TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
 
@@ -538,7 +535,7 @@ double TFDISTR::Density(int nDim, double *Xarg){
 
 	//cout << "===> Eext=" << ETot << ", Pzext=" << PzTot << ", q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl << endl;
   
-    if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.){
+    if(q1Pz > 6500. || q2Pz < -6500. || q1Pz < 0. || q2Pz > 0.){
       //cout << "Fail!" << endl;
       mycount++;
       //continue;
@@ -564,13 +561,13 @@ double TFDISTR::Density(int nDim, double *Xarg){
   	p[7][0] = p6.E(); p[7][1] = p6.Px(); p[7][2] = p6.Py(); p[7][3] = p6.Pz();
 
   	// Compute the Pdfs
-  	//double pdf1_1 = ComputePdf(21,TMath::Abs(q1Pz/(SQRT_S/2.)), pow(tot.M(),2)) / TMath::Abs(q1Pz/(SQRT_S/2.));
-  	//double pdf1_2 = ComputePdf(21,TMath::Abs(q2Pz/(SQRT_S/2.)), pow(tot.M(),2)) / TMath::Abs(q2Pz/(SQRT_S/2.));
-  	double pdf1_1 = ComputePdf(21,TMath::Abs(q1Pz/(SQRT_S/2.)), pow(M_T,2)) / TMath::Abs(q1Pz/(SQRT_S/2.));
-  	double pdf1_2 = ComputePdf(21,TMath::Abs(q2Pz/(SQRT_S/2.)), pow(M_T,2)) / TMath::Abs(q2Pz/(SQRT_S/2.));
+  	//double pdf1_1 = ComputePdf(21,TMath::Abs(q1Pz/6500.), pow(tot.M(),2)) / TMath::Abs(q1Pz/6500.);
+  	//double pdf1_2 = ComputePdf(21,TMath::Abs(q2Pz/6500.), pow(tot.M(),2)) / TMath::Abs(q2Pz/6500.);
+  	double pdf1_1 = ComputePdf(21,TMath::Abs(q1Pz/6500.), pow(M_T,2)) / TMath::Abs(q1Pz/6500.);
+  	double pdf1_2 = ComputePdf(21,TMath::Abs(q2Pz/6500.), pow(M_T,2)) / TMath::Abs(q2Pz/6500.);
   
 	// Compute flux factor 1/(2*x1*x2*s)
-	double PhaseSpaceIn = 1.0 / ( 2. * TMath::Abs(q1Pz/(SQRT_S/2.)) * TMath::Abs(q2Pz/(SQRT_S/2.0)) * pow(SQRT_S,2)); 
+	double PhaseSpaceIn = 1.0 / ( 2. * TMath::Abs(q1Pz/6500.) * TMath::Abs(q2Pz/6500.0) * pow(13000.,2)); 
 
 	// Compute finale Phase Space for observed particles (not concerned by the change of variable)
 	// dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
@@ -592,7 +589,7 @@ double TFDISTR::Density(int nDim, double *Xarg){
 	momenta.push_back(p5);
 	momenta.push_back(p6);
 	double jac = computeJacobian(momenta);
-	jac /= 8.*16.*pow(TMath::Pi()*SQRT_S,2.);
+	jac /= 8.*16.*pow(TMath::Pi()*13000,2.);
 
   	// Evaluate matrix element
   	process.sigmaKin();
@@ -601,13 +598,15 @@ double TFDISTR::Density(int nDim, double *Xarg){
 	//cout << "Found PDF1 = " << pdf1_1 << ", PDF2 = " << pdf1_2 << ", PS in = " << PhaseSpaceIn << ", PS out = " << PhaseSpaceOut << ", jac = " << jac << endl;
 	//cout << "===> Matrix element = " << matrix_elements1[0] << ", prod = " << PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac << endl << endl ;	
   
-	integrand += PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
+	//integrand += PhaseSpaceIn * PhaseSpaceOut * jac;
+	integrand += PhaseSpaceIn  *pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
+	//integrand += PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
 
 	// free up memory
 	for(unsigned int i = 0; i < p.size(); ++i){
 		delete p.at(i); p.at(i) = 0;
 	}
-  }
+  //}
 
   if(integrand == 0.){
 	mycount++;
@@ -615,14 +614,14 @@ double TFDISTR::Density(int nDim, double *Xarg){
 	return integrand;
   }
 
-  double flatterJac = range1 * range2 * range3 * range4;
+  /*double flatterJac = range1 * range2 * range3 * range4;
   flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
-  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);
+  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);*/
 
   // ### FOR NWA
-  //double flatterJac = pow(TMath::Pi(),4.) * (M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T);
+  double flatterJac = pow(TMath::Pi(),4.) * (M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T);
 
-  //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
+  cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 
   integrand *= flatterJac;
 
@@ -636,7 +635,7 @@ double TFDISTR::ComputePdf(int pid, double x, double q2){
     return xf;
 }
 
-double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met, int nCells = 2000, int nSampl = 100, int nPoints = 50000){
+double ME(TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met, int nCells = 2000, int nSampl = 100, int nPoints = 50000){
   
   TH1D *hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
   TH1D *hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
@@ -658,6 +657,10 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
   //Int_t imem = 0;
 
   TFoamIntegrand *rho= new TFDISTR("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met );
+
+  // ### FOR NWA
+  MCvect[0] = 0.; MCvect[1] = 0.; MCvect[2] = 0.; MCvect[3] = 0.; 
+  return rho->Density(4, MCvect);
 
   FoamX->SetRho(rho);
   FoamX->SetPseRan(PseRan);   // Set random number generator
@@ -720,14 +723,14 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
   TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
   c->cd();
   hst_We->Draw();
-  //c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Enu.png");
+  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Enu.png");
   delete hst_We; hst_We = 0;
   delete c; c = 0;
   
   c = new TCanvas("c","Canvas for plotting",600,600);
   c->cd();
   hst_Wm->Draw();
-  //c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Munu.png");
+  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Munu.png");
   delete hst_Wm; hst_Wm = 0;
   delete c; c = 0;
 
@@ -735,14 +738,14 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
   c = new TCanvas("c","Canvas for plotting",600,600);
   c->cd();
   hst_t->Draw();
-  //c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_t.png");
+  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_t.png");
   delete hst_t; hst_t = 0;
   delete c; c = 0;
   
   c = new TCanvas("c","Canvas for plotting",600,600);
   c->cd();
   hst_tbar->Draw();
-  //c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_tbar.png");
+  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_tbar.png");
   delete hst_tbar; hst_tbar = 0;
   delete c; c = 0;
 
@@ -750,7 +753,6 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
   delete PseRan; PseRan = 0;
   delete MCvect; MCvect = 0;
 
-  *error = mcError;
   return mcResult;
 }
 
@@ -778,35 +780,38 @@ int main(int argc, char *argv[])
 
   double weight1 = 0, weight2 = 0;
 
-  vector<double> nbr_points;
+  /*vector<double> nbr_points;
   vector<double> wgts;
-  vector<double> wgtsErr;
-  vector<double> wgtsErrX;
   double max_wgt = 0.;
-  double min_wgt = 1.;
+  double min_wgt = 1.;*/
 
   ofstream fout(outputFile);
 
   // Full weights
   //double madweight1[10] = {1.58495292058e-21, 2.09681384879e-21, 4.34399623629e-22, 1.68163897955e-22, 3.20350498956e-22, 5.22232034307e-22, 6.04738375743e-21, 9.55643564854e-22, 8.12425265344e-22, 5.81210532053e-23};
   //double madweight2[10] = {1.02514966131e-21, 1.45375719248e-21, 1.65080839221e-22, 1.55653414654e-24, 5.60531044001e-25, 1., 9.70526105314e-24, 3.89103636371e-22, 6.38206925825e-23, 9.37189585544e-26};
-  double madweight1[10] = {1.48990458909e-21,2.00433822978e-21,4.08998078881e-22,1.56339237714e-22,2.98606743727e-22,4.79498317117e-22,5.63645701583e-21,8.99177777775e-22,7.68316733666e-22,5.42606461617e-23};
-  double madweight1Err[10] = {8.63813589113e-24,1.08426062115e-23,2.5750146827e-24,7.0506407196e-25,1.10554655068e-24,2.31140842678e-24,2.71677566322e-23,4.8290429288e-24,1.69718762833e-24,2.66346844676e-25};
-  double madweight2[10] = {9.62646303545e-22,1.38143123163e-21,1.54526017444e-22,1.45628835295e-24,6.80263123625e-25,1.,1.07797730384e-23,3.61278172744e-22,6.19087950579e-23,7.20276231557e-26};
-  double madweight2Err[10] = {2.96180414077e-24,4.8856162625e-24,1.0218999515e-24,1.29754825587e-25,2.72733072519e-25,1.,4.03010515215e-24,4.29592188061e-24,1.67765665953e-24,8.06569780018e-27};
 
   // NWA weights
   //double madweight1[10] = {1.26069381322e-21, 2.85437676736e-21, 4.8136572269e-22, 1., 3.99894656854e-22, 5.7603822256e-22, 6.99323258475e-21, 1.0892124248e-21, 8.28291668972e-22, 1.};
   //double madweight2[10] = {1.46272073513e-21, 1.51733772927e-21, 1.61193875253e-22, 1., 1., 1., 1., 1., 1., 1.};
+  
   // NWA weights, first sol
   //double madweight1[3] = {8.93501179418e-22, 7.42359826601e-22, 1.49577468649e-22};
   //double madweight2[3] = {1.04113131882e-23, 7.04643552065e-22, 4.3214935529e-23};
+  
   // NWA weights, first sol, ME=1
   //double madweight1[3] = {1.9968889994e-17, 1.10734832869e-17, 2.17966664756e-18};
   //double madweight2[3] = {1.2718723458e-19, 2.38734853175e-17, 6.27800021816e-19};
+  
+  // NWA weights, first sol, ME=1, PDFs at MT
+  double madweight1[3] = {1.87606001644e-17,1.03940162959e-17,2.03195552246e-18};
+  double madweight2[3] = {1.13832307711e-19,2.25409191099e-17,5.84704434504e-19};
+  
+  // NWA weights, first sol, ME=1, PDF=1 ====> ratio = 1.0
+  //double madweight1[3] = {2.85762446039e-21, 1.67171088013e-21, 4.48282456867e-22, };
+  //double madweight2[3] = {2.59964233138e-22, 2.54996756026e-21, 1.76494620587e-22, };
 
-  for(int permutation = 1; permutation <= 2; permutation ++){
-  for(int entry = 0; entry < 1 ; ++entry)//numberOfEntries; ++entry)
+  for(Int_t entry = 0; entry < 3 ; ++entry)//numberOfEntries; ++entry)
   {
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
@@ -854,9 +859,9 @@ int main(int argc, char *argv[])
   cout << "MET" << endl;
   cout << gen_Met.E() << "," << gen_Met.Px() << "," << gen_Met.Py() << "," << gen_Met.Pz() << endl;
 
-  /*weight1 = ME(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, 20000, 10, 50000)/2.;
+  weight1 = ME(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, 2000, 100, 20000)/2.;
   count_perm = 2;
-  weight2 = ME(gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, 20000, 10, 50000)/2.;
+  weight2 = ME(gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, 2000, 100, 20000)/2.;
   
   double weight3;
   if(weight1 < weight2){
@@ -871,79 +876,39 @@ int main(int argc, char *argv[])
 	cout << "entry " << madweight1[entry] << "," << madweight2[entry] << endl;
   }
 
-  fout << entry << " weight1 = " << weight1 << " (" << weight1 / (double) madweight1[entry] << "), weight2 = " << weight2 << " (" << weight2/madweight2[entry] << ")" << endl;
+  fout << entry << " weight1 = " << weight1 << " (" << weight1/madweight1[entry] << "), weight2 = " << weight2 << " (" << weight2/madweight2[entry] << ")" << endl;
   
-  count_wgt++;*/
+  count_wgt++;
   
-  for(int k = 1; k <= 51; k+=2){
+  /*for(int k = 1; k < 50; k+=2){
 
-  double error = 0;
-
-  if(permutation == 1)
-	weight1 = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, k*10, 20, k*1000)/2;
-  if(permutation == 2)
-	weight1 = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, k*10, 20, k*1000)/2;
-  
+  count_perm = 1;
+  weight1 = ME(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, k*100, 100, k*1000);
   nbr_points.push_back(k*1000);
   wgts.push_back(weight1);
-  wgtsErr.push_back(error);
-  wgtsErrX.push_back(0.);
   if(weight1 > max_wgt) max_wgt = weight1;
   if(weight1 < min_wgt) min_wgt = weight1;
-  
-  if(abs(weight1-madweight1[entry]) > abs(madweight2[entry]-weight1)){
-	double weight3 = madweight2[entry];
-	madweight2[entry] = madweight1[entry];
-	madweight1[entry] = weight3;
-	
-	weight3 = madweight2Err[entry];
-	madweight2Err[entry] = madweight1Err[entry];
-	madweight1Err[entry] = weight3;
-  }
 
-  fout << entry << ", points=" << k*1000 << ", cells=" << k*10 << ", evts/cell=" << 20 << ": weight = " << weight1 << " +- " << error << " (" << weight1 / (double) madweight1[entry] << ")" <<  endl;
+
+  fout << entry << " weight1 = " << weight1 << " (" << weight1 / (double) madweight1[entry] << ")" <<  endl;
 
   count_wgt++;
 
-  }
+  }*/
 
-  double mwX[2] = {nbr_points.at(0), nbr_points.at(nbr_points.size()-1)};
-  double mwErrX[2] = {0.,0.};
-  double correct = madweight1[0];
-  double correctErr = madweight1Err[0];
-  if(abs(correct-wgts.at(wgts.size()-1)) > abs(madweight2[0]-wgts.at(wgts.size()-1))){
-	correct = madweight2[0];
-	correctErr = madweight2Err[0];
   }
-  double madwgts[2] = {correct, correct};
-  double madwgtsErr[2] = {correctErr, correctErr};
-  if(correct < min_wgt)
-	min_wgt = correct;
-  if(correct > max_wgt)
-	max_wgt = correct;
   
-  TGraphErrors* wgt_vs_points = new TGraphErrors(wgts.size(), &nbr_points[0], &wgts[0], &wgtsErrX[0], &wgtsErr[0]);
-  TGraphErrors* madwgt_vs_points = new TGraphErrors(2, mwX, madwgts, mwErrX, madwgtsErr);
+  /*TGraph* wgt_vs_points = new TGraph(wgts.size(), &nbr_points[0], &wgts[0]);
   TCanvas* c = new TCanvas("c","Canvas for plotting",600,600);
   c->cd();
   wgt_vs_points->Draw("AC*");
-  wgt_vs_points->GetHistogram()->SetMaximum(max_wgt+wgtsErr[0]);
-  wgt_vs_points->GetHistogram()->SetMinimum(min_wgt-wgtsErr[0]);
+  wgt_vs_points->GetHistogram()->SetMaximum(max_wgt);
+  wgt_vs_points->GetHistogram()->SetMinimum(min_wgt);
   wgt_vs_points->SetMarkerColor(kRed);
   wgt_vs_points->SetLineColor(kRed);
-  wgt_vs_points->SetMarkerStyle(21);
-  madwgt_vs_points->Draw("CP3");
-  madwgt_vs_points->SetMarkerColor(kBlue);
-  madwgt_vs_points->SetLineColor(kBlue);
-  madwgt_vs_points->SetFillColor(kBlue);
-  madwgt_vs_points->SetFillStyle(3005);
-  c->Print(TString("plots/wgt_vs_points_fewerCells")+SSTR(entry)+"_"+SSTR(permutation)+".png");
+  c->Print("plots/wgt_vs_points_1_1.png");
   delete wgt_vs_points;
-  delete madwgt_vs_points;
-  delete c;
-  
-  }
-  }
+  delete c;*/
 
   delete treeReader; 
 }

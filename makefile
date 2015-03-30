@@ -14,6 +14,12 @@ all: ww ttbar
 ttbar: PROC_DIR := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/
 ttbar: MGproc := $(PROC_DIR)/SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.o $(PROC_DIR)/src/*.o
 
+#ttbar: $(sourcedir)/ME_ttbar_MW_NWA.o makefile
+#	$(CXX) $(LDFLAGS) $< $(MGproc) -o $(sourcedir)/ME_ttbar_MW_NWA.exe
+#
+#$(sourcedir)/ME_ttbar_MW_NWA.o: $(sourcedir)/ME_ttbar_MW_NWA.cpp makefile
+#	$(CXX) $(CXXFLAGS) $(LDFLAGS) -I$(PROC_DIR) -c $< -o $@
+
 ttbar: $(sourcedir)/ME_ttbar_MW.o makefile
 	$(CXX) $(LDFLAGS) $< $(MGproc) -o $(sourcedir)/ME_ttbar_MW.exe
 
