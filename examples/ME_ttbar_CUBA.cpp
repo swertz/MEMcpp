@@ -47,6 +47,8 @@
 #include "LHAPDF/LHAPDF.h"
 #include "LHAPDF/PDFSet.h"
 
+#include "cuba.h"
+
 #define M_T 173.
 #define G_T 1.4915
 
