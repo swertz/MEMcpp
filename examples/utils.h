@@ -3,12 +3,12 @@
 
 #include <vector>
 
-double solveQuadratic(double a, double b, double c, std::vector<double>& roots);
-double solveCubic(double a, double b, double c, double d, std::vector<double>& roots);
-bool solveQuartic(double a, double b, double c, double d, double e, std::vector<double>& roots);
-bool solve2Quads(double a11, double a22, double a12, double a10, double a01, double a00,
-				double b11, double b22, double b12, double b10, double b01, double b00,
+bool solveQuadratic(const double a, const double b, const double c, std::vector<double>& roots);
+bool solveCubic(const double a, const double b, const double c, const double d, std::vector<double>& roots);
+bool solveQuartic(const double a, const double b, const double c, const double d, const double e, std::vector<double>& roots);
+bool solve2Quads(const double a11, const double a22, const double a12, const double a10, const double a01, const double a00,
+				const double b11, const double b22, const double b12, const double b10, const double b01, const double b00,
 				std::vector<double>& E1, std::vector<double>& E2);
-double BreitWigner(double s, double m, double g);
+double BreitWigner(const double s, const double m, const double g);
 
 #endif

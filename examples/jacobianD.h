@@ -4,8 +4,8 @@
 #include <vector>
 #include "TLorentzVector.h"
 
-#define JAC_MIN 10e-20
+#define JAC_MIN 1.e-20
 
-double computeJacobianD(std::vector<TLorentzVector> p, double sqrt_s);
+double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s);
 
 #endif
