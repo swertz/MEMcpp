@@ -2,7 +2,7 @@ BOOST_DIR := /usr/include/boost141
 
 DELPHES_DIR := /home/fynu/swertz/storage/Delphes/Delphes-3.1.2/
 
-CXXFLAGS := -O3 -std=c++0x -Wall -l $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(BOOST_DIR) -I$(DELPHES_DIR)
+CXXFLAGS := -O3 -std=c++11 -Wall -l $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(BOOST_DIR) -I$(DELPHES_DIR)
 LDFLAGS := $(shell root-config --libs --glibs) -lFoam $(shell lhapdf-config --ldflags) -L$(DELPHES_DIR) -lDelphes
 CXX := g++
 
