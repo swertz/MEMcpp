@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <stdlib.h>
 #include "Riostream.h"
 
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
@@ -87,9 +88,7 @@ TFDISTR::TFDISTR(const std::string paramCardPath, const TLorentzVector ep, const
 	p3 = ep;
 	p5 = mum;
 	p4 = b;
-	//p4.SetE(p4.P());
 	p6 = bbar;
-	//p6.SetE(p6.P());
 	Met = met;
 	pdf = LHAPDF::mkPDF("cteq6l1", 0);
 }
@@ -556,6 +555,8 @@ int main(int argc, char *argv[])
 
 	TString inputFile(argv[1]);
 	TString outputFile(argv[2]);
+	int start_evt = atoi(argv[3]);
+	int end_evt = atoi(argv[4]);
 
 	gSystem->Load("libDelphes");
 
@@ -571,15 +572,24 @@ int main(int argc, char *argv[])
 
 	cout << "Entries:" << chain.GetEntries() << endl;
 
-	ofstream fout(outputFile);
+	TFile* outFile = new TFile(outputFile, "RECREATE");
+	TTree* outTree = chain.CloneTree(0);
+
+	double Weight_TT_cpp, Weight_TT_Error_cpp;
+	bool Weighted_TT_cpp;
+	outTree->Branch("Weight_TT_cpp", &Weight_TT_cpp);
+	outTree->Branch("Weight_TT_Error_cpp", &Weight_TT_Error_cpp);
+	outTree->Branch("Weighted_TT_cpp", &Weighted_TT_cpp);
+
+	//ofstream fout(outputFile);
 
 	// Full weights
 	//double madweight1[10] = {1.58495292058e-21, 2.09681384879e-21, 4.34399623629e-22, 1.68163897955e-22, 3.20350498956e-22, 5.22232034307e-22, 6.04738375743e-21, 9.55643564854e-22, 8.12425265344e-22, 5.81210532053e-23};
 	//double madweight2[10] = {1.02514966131e-21, 1.45375719248e-21, 1.65080839221e-22, 1.55653414654e-24, 5.60531044001e-25, 1., 9.70526105314e-24, 3.89103636371e-22, 6.38206925825e-23, 9.37189585544e-26};
-	double madweight1[10] = {1.48990458909e-21,2.00433822978e-21,4.08998078881e-22,1.56339237714e-22,2.98606743727e-22,4.79498317117e-22,5.63645701583e-21,8.99177777775e-22,7.68316733666e-22,5.42606461617e-23};
+	/*double madweight1[10] = {1.48990458909e-21,2.00433822978e-21,4.08998078881e-22,1.56339237714e-22,2.98606743727e-22,4.79498317117e-22,5.63645701583e-21,8.99177777775e-22,7.68316733666e-22,5.42606461617e-23};
 	double madweight1Err[10] = {8.63813589113e-24,1.08426062115e-23,2.5750146827e-24,7.0506407196e-25,1.10554655068e-24,2.31140842678e-24,2.71677566322e-23,4.8290429288e-24,1.69718762833e-24,2.66346844676e-25};
-	double madweight2[10] = {9.62646303545e-22,1.38143123163e-21,1.54526017444e-22,1.45628835295e-24,6.80263123625e-25,1.,1.07797730384e-23,3.61278172744e-22,6.19087950579e-23,7.20276231557e-26};
-	double madweight2Err[10] = {2.96180414077e-24,4.8856162625e-24,1.0218999515e-24,1.29754825587e-25,2.72733072519e-25,1.,4.03010515215e-24,4.29592188061e-24,1.67765665953e-24,8.06569780018e-27};
+	double madweight2[10] = {9.62646303545e-22,1.38143123163e-21,1.54526017444e-22,1.45628835295e-24,6.80263123625e-25,0.,1.07797730384e-23,3.61278172744e-22,6.19087950579e-23,7.20276231557e-26};
+	double madweight2Err[10] = {2.96180414077e-24,4.8856162625e-24,1.0218999515e-24,1.29754825587e-25,2.72733072519e-25,0.,4.03010515215e-24,4.29592188061e-24,1.67765665953e-24,8.06569780018e-27};*/
 
 	// NWA weights
 	//double madweight1[10] = {1.26069381322e-21, 2.85437676736e-21, 4.8136572269e-22, 1., 3.99894656854e-22, 5.7603822256e-22, 6.99323258475e-21, 1.0892124248e-21, 8.28291668972e-22, 1.};
@@ -591,24 +601,14 @@ int main(int argc, char *argv[])
 	//double madweight1[3] = {1.9968889994e-17, 1.10734832869e-17, 2.17966664756e-18};
 	//double madweight2[3] = {1.2718723458e-19, 2.38734853175e-17, 6.27800021816e-19};
 
-	for(int entry = 0; entry < 10 ; ++entry){//numberOfEntries; ++entry)
-	for(int permutation = 1; permutation <= 2; permutation ++){
+	if(end_evt >= chain.GetEntries())
+		end_evt = chain.GetEntries()-1;
 
-		//entry = 3; permutation = 2;
-
-		count_perm = permutation;
-	
-		double weight1 = 0/*, weight2 = 0*/;
-
-		vector<double> nbr_points;
-		vector<double> wgts;
-		vector<double> wgtsErr;
-		vector<double> wgtsErrX;
-		double max_wgt = 0.;
-		double min_wgt = 1.;
-
+	for(int entry = start_evt; entry <= end_evt ; ++entry){
+		
 		// Load selected branches with data from specified event
 		treeReader->ReadEntry(entry);
+		chain.GetEntry(entry);
 
 		TLorentzVector gen_ep, gen_mum, gen_b, gen_bbar, gen_Met;
 
@@ -650,110 +650,131 @@ int main(int argc, char *argv[])
 		cout << "MET" << endl;
 		cout << gen_Met.E() << "," << gen_Met.Px() << "," << gen_Met.Py() << "," << gen_Met.Pz() << endl;
 
-		/*weight1 = ME(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, 20000, 10, 50000)/2.;
-		weight2 = ME(gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, 20000, 10, 50000)/2.;
-		
-		double weight3;
-		if(weight1 < weight2){
-			weight3 = weight2;
-			weight2 = weight1;
-			weight1 = weight3;
-		}
-		if(madweight1[entry] < madweight2[entry]){
-			weight3 = madweight2[entry];
-			madweight2[entry] = madweight1[entry];
-			madweight1[entry] = weight3;
-			cout << "entry " << madweight1[entry] << "," << madweight2[entry] << endl;
-		}
+		Weight_TT_cpp = 0.;
+		Weight_TT_Error_cpp = 0.;
 
-		fout << entry << " weight1 = " << weight1 << " (" << weight1 / (double) madweight1[entry] << "), weight2 = " << weight2 << " (" << weight2/madweight2[entry] << ")" << endl;
-		
-		count_wgt++;*/
-		
-		for(int k = 26; k <= 51; k+=25){
-			/*int nCells = k*100;
-			int nSampl = 10;
-			int nPoints = 50000;*/
-			/*int nCells = k*40;
-			int nSampl = 200;
-			int nPoints = 50000;*/
-			int nCells = 500;
-			int nSampl = 100;
-			int nPoints = 50000;
+		for(int permutation = 1; permutation <= 2; permutation ++){
 
-			double error = 0;
+			//entry = 3; permutation = 2;
 
-			if(permutation == 1)
-				weight1 = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, nCells, nSampl, nPoints)/2;
-			if(permutation == 2)
-				weight1 = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, nCells, nSampl, nPoints)/2;
-			
-			nbr_points.push_back(nCells);
-			//nbr_points.push_back(nPoints);
-			wgts.push_back(weight1);
-			wgtsErr.push_back(error);
-			wgtsErrX.push_back(0.);
-			if(weight1 > max_wgt) max_wgt = weight1;
-			if(weight1 < min_wgt) min_wgt = weight1;
-			
-			if(abs(weight1-madweight1[entry]) > abs(madweight2[entry]-weight1)){
-				double weight3 = madweight2[entry];
-				madweight2[entry] = madweight1[entry];
-				madweight1[entry] = weight3;
+			count_perm = permutation;
+		
+			double weight = 0;
+
+			vector<double> nbr_points;
+			vector<double> wgts;
+			vector<double> wgtsErr;
+			vector<double> wgtsErrX;
+			double max_wgt = 0.;
+			double min_wgt = 1.;
+
+
+			for(int k = 1; k <= 51; k+=5){
+				/*int nCells = k*10;
+				int nSampl = 100;
+				int nPoints = 50000;*/
+				/*int nCells = k*40;
+				int nSampl = 200;
+				int nPoints = 50000;*/
+				int nCells = 750;
+				int nSampl = 50;
+				int nPoints = 50000;
+
+				double error = 0;
+
+				if(permutation == 1)
+					weight = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, nCells, nSampl, nPoints)/2;
+				if(permutation == 2)
+					weight = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, nCells, nSampl, nPoints)/2;
+
+				Weight_TT_cpp += weight;
+				Weight_TT_Error_cpp += pow(error/2,2.);
 				
-				weight3 = madweight2Err[entry];
-				madweight2Err[entry] = madweight1Err[entry];
-				madweight1Err[entry] = weight3;
+				/*nbr_points.push_back(nCells);
+				//nbr_points.push_back(nPoints);
+				wgts.push_back(weight);
+				wgtsErr.push_back(error);
+				wgtsErrX.push_back(0.);
+				if(weight > max_wgt) max_wgt = weight;
+				if(weight < min_wgt) min_wgt = weight;
+				
+				if(abs(weight-madweight1[entry]) > abs(madweight2[entry]-weight)){
+					double weight3 = madweight2[entry];
+					madweight2[entry] = madweight1[entry];
+					madweight1[entry] = weight3;
+					
+					weight3 = madweight2Err[entry];
+					madweight2Err[entry] = madweight1Err[entry];
+					madweight1Err[entry] = weight3;
+				}
+				
+				if(madweight1[entry] == 0.)
+					fout << entry << "/" << permutation << ", points=" << nPoints << ", cells=" << nCells << ", evts/cell=" << nSampl << ": weight = " << weight << " +- " << error << " (1)" << endl;
+				else{
+					double ratErr;
+					if(weight != 0)
+						ratErr = weight/madweight1[entry] * TMath::Sqrt( pow(error/weight,2.) + pow(madweight1Err[entry]/madweight1[entry],2.) );
+					else
+						ratErr = 0;
+					fout << entry << "/" << permutation << ", points=" << nPoints << ", cells=" << nCells << ", evts/cell=" << nSampl << ": weight = " << weight << " +- " << error << " (" << weight / (double) madweight1[entry] << " +- " << ratErr << ")" << endl;
+				}*/
+
+				break;
+
 			}
 
-			fout << entry << "/" << permutation << ", points=" << nPoints << ", cells=" << nCells << ", evts/cell=" << nSampl << ": weight = " << weight1 << " +- " << error << " (" << weight1 / (double) madweight1[entry] << ")" <<	endl;
-
-			break;
-
-		}
-
-		/*double mwX[2] = {nbr_points.at(0), nbr_points.at(nbr_points.size()-1)};
-		double mwErrX[2] = {0.,0.};
-		double correct = madweight1[entry];
-		double correctErr = madweight1Err[entry];
-		if(abs(correct-wgts.at(wgts.size()-1)) > abs(madweight2[entry]-wgts.at(wgts.size()-1))){
-			correct = madweight2[entry];
-			correctErr = madweight2Err[entry];
-		}
-		double madwgts[2] = {correct, correct};
-		double madwgtsErr[2] = {correctErr, correctErr};
-		if(correct < min_wgt)
-			min_wgt = correct;
-		if(correct > max_wgt)
-			max_wgt = correct;
+			/*double mwX[2] = {nbr_points.at(0), nbr_points.at(nbr_points.size()-1)};
+			double mwErrX[2] = {0.,0.};
+			double correct = madweight1[entry];
+			double correctErr = madweight1Err[entry];
+			if(abs(correct-wgts.at(wgts.size()-1)) > abs(madweight2[entry]-wgts.at(wgts.size()-1))){
+				correct = madweight2[entry];
+				correctErr = madweight2Err[entry];
+			}
+			double madwgts[2] = {correct, correct};
+			double madwgtsErr[2] = {correctErr, correctErr};
+			if(correct < min_wgt)
+				min_wgt = correct;
+			if(correct > max_wgt)
+				max_wgt = correct;
+			
+			TGraphErrors* wgt_vs_points = new TGraphErrors(wgts.size(), &nbr_points[0], &wgts[0], &wgtsErrX[0], &wgtsErr[0]);
+			TGraphErrors* madwgt_vs_points = new TGraphErrors(2, mwX, madwgts, mwErrX, madwgtsErr);
+			TCanvas* c = new TCanvas("c","Canvas for plotting",600,600);
+			c->cd();
+			wgt_vs_points->Draw("AC*");
+			wgt_vs_points->GetHistogram()->SetMaximum(max_wgt+wgtsErr[0]);
+			wgt_vs_points->GetHistogram()->SetMinimum(min_wgt-wgtsErr[0]);
+			wgt_vs_points->SetMarkerColor(kRed);
+			wgt_vs_points->SetLineColor(kRed);
+			wgt_vs_points->SetMarkerStyle(21);
+			madwgt_vs_points->Draw("CP3");
+			madwgt_vs_points->SetMarkerColor(kBlue);
+			madwgt_vs_points->SetLineColor(kBlue);
+			madwgt_vs_points->SetFillColor(kBlue);
+			madwgt_vs_points->SetFillStyle(3005);
+			//c->Print(TString("plots/test3_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
+			c->Print(TString("plots/wgt_vs_cells_50000p_500c_100s_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
+			//c->Print(TString("plots/wgt_vs_points_102000p_5100c_50s_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
+			delete wgt_vs_points; wgt_vs_points = 0;
+			delete madwgt_vs_points; madwgt_vs_points = 0;
+			delete c;*/
 		
-		TGraphErrors* wgt_vs_points = new TGraphErrors(wgts.size(), &nbr_points[0], &wgts[0], &wgtsErrX[0], &wgtsErr[0]);
-		TGraphErrors* madwgt_vs_points = new TGraphErrors(2, mwX, madwgts, mwErrX, madwgtsErr);
-		TCanvas* c = new TCanvas("c","Canvas for plotting",600,600);
-		c->cd();
-		wgt_vs_points->Draw("AC*");
-		wgt_vs_points->GetHistogram()->SetMaximum(max_wgt+wgtsErr[0]);
-		wgt_vs_points->GetHistogram()->SetMinimum(min_wgt-wgtsErr[0]);
-		wgt_vs_points->SetMarkerColor(kRed);
-		wgt_vs_points->SetLineColor(kRed);
-		wgt_vs_points->SetMarkerStyle(21);
-		madwgt_vs_points->Draw("CP3");
-		madwgt_vs_points->SetMarkerColor(kBlue);
-		madwgt_vs_points->SetLineColor(kBlue);
-		madwgt_vs_points->SetFillColor(kBlue);
-		madwgt_vs_points->SetFillStyle(3005);
-		//c->Print(TString("plots/test3_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
-		//c->Print(TString("plots/wgt_vs_cells_50000p_2000c_200s_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
-		//c->Print(TString("plots/wgt_vs_points_102000p_5100c_50s_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
-		delete wgt_vs_points; wgt_vs_points = 0;
-		delete madwgt_vs_points; madwgt_vs_points = 0;
-		delete c;*/
-	
-	//break;
+		//break;
+		}
+		
+		Weight_TT_Error_cpp = TMath::Sqrt(Weight_TT_Error_cpp);
+		Weighted_TT_cpp = true;
+
+		outTree->Fill();
+
+		count_wgt++;
+		//fout << endl;
+		//break;
 	}
-	count_wgt++;
-	//break;
-	}
+
+	outTree->Write();
+	outFile->Close();
 
 	delete treeReader; 
 }
