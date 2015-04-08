@@ -67,7 +67,8 @@ using namespace LHAPDF;
 
 int mycount = 0, count_wgt = 0, count_perm=1;
 
-class TFDISTR: public TFoamIntegrand{
+//class TFDISTR: public TFoamIntegrand{
+/*class TFDISTR{
 	private:
 	
 	CPPProcess process;
@@ -79,9 +80,12 @@ class TFDISTR: public TFoamIntegrand{
 	public:
 
 	TFDISTR(const std::string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
-	double Density(int nDim, double* Xarg);
+	//double Density(int nDim, double* Xarg);
+	int Density(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *dum);
 	double ComputePdf(const int pid, const double x, const double q2);
 };
+
+//typedef int (TFDISTR::*INTEGRAND) (const int*, const double*, const int*, double*);
 
 TFDISTR::TFDISTR(const std::string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
 	process.initProc(paramCardPath);
@@ -91,18 +95,38 @@ TFDISTR::TFDISTR(const std::string paramCardPath, const TLorentzVector ep, const
 	p6 = bbar;
 	Met = met;
 	pdf = LHAPDF::mkPDF("cteq6l1", 0);
+}*/
+
+CPPProcess process;
+PDF *pdf;
+
+//double TFDISTR::ComputePdf(const int pid, const double x, const double q2){
+double ComputePdf(const int pid, const double x, const double q2){
+	// return the xf(pid,x,q2), be careful: this value must be divided by x to obtain f
+	const double xf = pdf->xfxQ2(pid, x, q2);
+	return xf;
 }
 
-double TFDISTR::Density(int nDim, double* Xarg){
+//double TFDISTR::Density(int nDim, double* Xarg){
+//int TFDISTR::Density(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *dum){
+int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
 	// Integrand for mFOAM
 	//cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
 	//cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << endl;
 
-	for(int i=0; i<nDim; i++){
+	TLorentzVector p3 = (TLorentzVector) ((vector<TLorentzVector>*)inputs)->at(0);
+	TLorentzVector p5 = (TLorentzVector) ((vector<TLorentzVector>*)inputs)->at(1);
+	TLorentzVector p4 = (TLorentzVector) ((vector<TLorentzVector>*)inputs)->at(2);
+	TLorentzVector p6 = (TLorentzVector) ((vector<TLorentzVector>*)inputs)->at(3);
+	TLorentzVector Met = (TLorentzVector) ((vector<TLorentzVector>*)inputs)->at(4);
+
+	*Value = 0.;
+
+	for(int i=0; i<*nDim; i++){
 		if(Xarg[i] == 1){
 			mycount++;
-			return 0.;
+			return 0;
 		}
 	}
 
@@ -155,7 +179,7 @@ double TFDISTR::Density(int nDim, double* Xarg){
 	if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M()){
 		//cout << "Masses too small!" << endl;
 		mycount++;
-		return 0.;
+		return 0;
 	}
 
 	// #### FOR NWA
@@ -254,9 +278,8 @@ double TFDISTR::Density(int nDim, double* Xarg){
 	if(E1.size() == 0){
 		//cout << "No solutions!" << endl;
 		mycount++;
-		return 0.;
+		return 0;
 	}
-	double integrand = 0.;
 
 	//integrand = BreitWigner(s13,M_W,G_W) * BreitWigner(s25,M_W,G_W) * BreitWigner(s134,M_T,G_T) * BreitWigner(s256,M_T,G_T);
 
@@ -275,10 +298,9 @@ double TFDISTR::Density(int nDim, double* Xarg){
 		//cout << endl << "## Evaluating Matrix Element based on solutions e1 = " << e1 << ", e2 = " << e2 << endl << endl;
 
 		if(e1 < 0. || e2 < 0.){
-			mycount++;
+			//mycount++;
 			//cout << "Neg energies." << endl;
-			//continue;
-			return 0.;
+			continue;
 		}
 
 		TLorentzVector p1,p2;
@@ -327,8 +349,7 @@ double TFDISTR::Density(int nDim, double* Xarg){
 		if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.){
 			//cout << "Fail!" << endl;
 			mycount++;
-			//continue;
-			return 0.;
+			continue;
 		}
 	
 		// momentum vector definition
@@ -391,7 +412,7 @@ double TFDISTR::Density(int nDim, double* Xarg){
 		//cout << "Found PDF1 = " << pdf1_1 << ", PDF2 = " << pdf1_2 << ", PS in = " << PhaseSpaceIn << ", PS out = " << PhaseSpaceOut << ", jac = " << jac << endl;
 		//cout << "===> Matrix element = " << matrix_elements1[0] << ", prod = " << PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac << endl << endl ;	
 		
-		integrand += PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
+		*Value += PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
 
 		// free up memory
 		for(unsigned int i = 0; i < p.size(); ++i){
@@ -399,10 +420,10 @@ double TFDISTR::Density(int nDim, double* Xarg){
 		}
 	}
 
-	if(integrand == 0.){
+	if(*Value == 0.){
 		mycount++;
 		//cout << "Zero!" << endl;
-		return integrand;
+		return 0;
 	}
 
 	double flatterJac = range1 * range2 * range3 * range4;
@@ -414,53 +435,60 @@ double TFDISTR::Density(int nDim, double* Xarg){
 
 	//cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<	endl;
 
-	integrand *= flatterJac;
+	*Value *= flatterJac;
 
-	return integrand;
-}
-
-
-double TFDISTR::ComputePdf(const int pid, const double x, const double q2){
-	// return the xf(pid,x,q2), be careful: this value must be divided by x to obtain f
-	const double xf = pdf->xfxQ2(pid, x, q2);
-	return xf;
+	return 0;
 }
 
 double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met, int nCells = 2000, int nSampl = 100, int nPoints = 50000){
 	
-	TH1D *hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
+	/*TH1D *hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
 	TH1D *hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
 	TH1D *hst_t = new TH1D("test_t", "test_1D", 100,150,250);
-	TH1D *hst_tbar = new TH1D("test_tbar", "test_1D", 100,150,250);
+	TH1D *hst_tbar = new TH1D("test_tbar", "test_1D", 100,150,250);*/
 
 	TStopwatch chrono;
-	std::cout << "initialising : " ;
+	//std::cout << "initialising : " ;
 	// TFoam Implementation
-	double *MCvect = new double[4];
-	TRandom3	*PseRan	 = new TRandom3();
+	//double *MCvect = new double[4];
+	//TRandom3	*PseRan	 = new TRandom3();
 	//PseRan->SetSeed(514638543);	
-	TFoam	 *FoamX		= new TFoam("FoamX");
-	FoamX->SetkDim(4);
-	FoamX->SetnCells(nCells);			// No. of cells, can be omitted, default=2000
-	FoamX->SetnSampl(nSampl);
+	//TFoam	 *FoamX		= new TFoam("FoamX");
+	//FoamX->SetkDim(4);
+	//FoamX->SetnCells(nCells);			// No. of cells, can be omitted, default=2000
+	//FoamX->SetnSampl(nSampl);
 
-	TString pdfname = "cteq6l1";
+	//TString pdfname = "cteq6l1";
 	//Int_t imem = 0;
 
-	TFoamIntegrand *rho= new TFDISTR("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met );
+	//TFoamIntegrand *rho= new TFDISTR("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met );
 
-	FoamX->SetRho(rho);
-	FoamX->SetPseRan(PseRan);	 // Set random number generator
+	//FoamX->SetRho(rho);
+	//FoamX->SetPseRan(PseRan);	 // Set random number generator
 
-	std::cout << "Starting initialisation..." << std::endl;
-	FoamX->Initialize(); 
+	//std::cout << "Starting initialisation..." << std::endl;
+	//FoamX->Initialize(); 
 	
-	std::cout << "CPU time : " << chrono.CpuTime() << "	Real-time : " << chrono.RealTime() << std::endl;
-	chrono.Reset();
+	//std::cout << "CPU time : " << chrono.CpuTime() << "	Real-time : " << chrono.RealTime() << std::endl;
+	//chrono.Reset();
 	chrono.Start();
 	std::cout << "Looping over phase-space points" << std::endl;
 
-	for(Long_t loop=0; loop<nPoints; loop++){
+	int neval, nfail;
+	double mcResult, mcError, prob;
+	vector<TLorentzVector> inputs;
+	inputs.push_back(ep);
+	inputs.push_back(mum);
+	inputs.push_back(b);
+	inputs.push_back(bbar);
+	inputs.push_back(Met);
+
+	//TFDISTR *MEFunct = new TFDISTR("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
+	//INTEGRAND myInt = &TFDISTR::Density;
+	//Vegas(4, 1, MEFunct->*myInt, NULL, 1, 0.01, 0., 2, 0, 10000, 50000, 1000, 500, 1000, 0, "", 0, &neval, &nfail, &mcResult, &mcError, &prob);
+	Vegas(4, 1, (integrand_t)MEFunct, (void*)&inputs, 1, 0.01, 0., 2, 0, 10000, 50000, 1000, 500, 1000, 0, "", 0, &neval, &nfail, &mcResult, &mcError, &prob);
+
+	/*for(Long_t loop=0; loop<nPoints; loop++){
 		int count_old = mycount;
 		FoamX->MakeEvent();					// generate MC event
 		FoamX->GetMCvect( MCvect );	 // get generated vector (x,y)
@@ -498,16 +526,15 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	}
 
 	double mcResult, mcError;
-	FoamX->GetIntegMC( mcResult, mcError);	// get MC integral, should be one
+	FoamX->GetIntegMC( mcResult, mcError);	// get MC integral, should be one*/
 	
 	std::cout << "CPU time : " << chrono.CpuTime() << "	Real-time : " << chrono.RealTime() << std::endl;
-	cout << "nr. fails: " << mycount	<< endl;
+	cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
 	mycount = 0;
 
-	cout << " mcResult= " << mcResult << " +- " << mcError <<endl;
-
+	cout << " mcResult= " << mcResult << " +- " << mcError << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl;
 	
-	TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
+	/*TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
 	c->cd();
 	hst_We->Draw();
 	//c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Enu.png");
@@ -538,7 +565,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 
 	delete FoamX; FoamX = 0;
 	delete PseRan; PseRan = 0;
-	delete MCvect; MCvect = 0;
+	delete MCvect; MCvect = 0;*/
 
 	*error = mcError;
 	if(std::isnan(*error))
@@ -552,7 +579,9 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 int main(int argc, char *argv[])
 //const char *inputFile,const char *outputFile
 {
-
+string paramCardPath = "/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat";
+process.initProc(paramCardPath);
+pdf = LHAPDF::mkPDF("cteq6l1", 0);
 	TString inputFile(argv[1]);
 	TString outputFile(argv[2]);
 	int start_evt = atoi(argv[3]);
@@ -665,8 +694,8 @@ int main(int argc, char *argv[])
 			vector<double> wgts;
 			vector<double> wgtsErr;
 			vector<double> wgtsErrX;
-			double max_wgt = 0.;
-			double min_wgt = 1.;
+			/*double max_wgt = 0.;
+			double min_wgt = 1.;*/
 
 
 			for(int k = 1; k <= 51; k+=5){
