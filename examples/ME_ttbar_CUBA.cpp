@@ -4,9 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-#include <iomanip>
 #include <stdlib.h>
-#include "Riostream.h"
 
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
 #include "external/ExRootAnalysis/ExRootTreeWriter.h"
@@ -486,7 +484,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	//TFDISTR *MEFunct = new TFDISTR("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
 	//INTEGRAND myInt = &TFDISTR::Density;
 	//Vegas(4, 1, MEFunct->*myInt, NULL, 1, 0.01, 0., 2, 0, 10000, 50000, 1000, 500, 1000, 0, "", 0, &neval, &nfail, &mcResult, &mcError, &prob);
-	Vegas(4, 1, (integrand_t)MEFunct, (void*)&inputs, 1, 0.01, 0., 2, 0, 10000, 50000, 1000, 500, 1000, 0, "", 0, &neval, &nfail, &mcResult, &mcError, &prob);
+	Vegas(4, 1, (integrand_t)MEFunct, (void*)&inputs, 1, 0.01, 0., 0, 0, 10000, 50000, 1000, 500, 1000, 0, "", 0, &neval, &nfail, &mcResult, &mcError, &prob);
 
 	/*for(Long_t loop=0; loop<nPoints; loop++){
 		int count_old = mycount;
