@@ -148,7 +148,7 @@ double BreitWigner(const double s, const double m, const double g){
 	double k = 2*sqrt(2)*m*g*ga/(TMath::Pi()*sqrt(m*m+ga));*/
 	double k = m*g;
 	
-	cout << "BW(" << s << "," << m << "," << g << ")=" << k/(pow(s-m*m,2.) + pow(m*g,2.)) << endl;
+	//cout << "BW(" << s << "," << m << "," << g << ")=" << k/(pow(s-m*m,2.) + pow(m*g,2.)) << endl;
 	
 	return k/(pow(s-m*m,2.) + pow(m*g,2.));
 }

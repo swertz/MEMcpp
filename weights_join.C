@@ -34,9 +34,9 @@ int weights_join(const char *inputFile_weights, const char *inputFile_tree, cons
 	double O_Weight_Error;
 	bool O_Weighted;
 
-	Tree_output->Branch("Weight_TT", &O_Weight);
-	Tree_output->Branch("Weight_TT_Error", &O_Weight_Error);
-	Tree_output->Branch("Weighted_TT", &O_Weighted);
+	Tree_output->Branch("Weight_TT_bis", &O_Weight);
+	Tree_output->Branch("Weight_TT_bis_Error", &O_Weight_Error);
+	Tree_output->Branch("Weighted_TT_bis", &O_Weighted);
 	
 	///// output variables /////////////////////////////////////////
 	cout << "Loading weights... ";
