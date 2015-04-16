@@ -1,4 +1,4 @@
-CXXFLAGS := -O3 -std=c++11 -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags)
+CXXFLAGS := -O2 -g -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags)
 LDFLAGS := -lm $(shell root-config --libs --glibs) $(shell lhapdf-config --ldflags) -lcuba -lDelphes
 CXX := g++
 

@@ -1,5 +1,5 @@
-#module load root/5.34.09-sl6_gcc44 
-source /nfs/soft/root/setup_sl6/root.sh
+module load root/5.34.09-sl6_gcc44 
+#source /nfs/soft/root/setup_sl6/root.sh
 module load lhapdf/6.1
 module load gcc/gcc-4.9.1-sl6_amd64
 

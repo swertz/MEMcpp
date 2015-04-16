@@ -6,10 +6,6 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "external/ExRootAnalysis/ExRootTreeReader.h"
-#include "external/ExRootAnalysis/ExRootTreeWriter.h"
-#include "external/ExRootAnalysis/ExRootTreeBranch.h"
-#include "external/ExRootAnalysis/ExRootResult.h"
 #include "classes/DelphesClasses.h"
 
 #include "src/HelAmps_sm.h"
@@ -100,7 +96,8 @@ class MEWeight{
 	public:
 
 	MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
-	inline double ComputePdf(const int pid, const double x, const double q2);
+	~MEWeight();
+    inline double computePdf(const int pid, const double x, const double q2);
 
 	inline TLorentzVector GetP3(void) const { return p3; }
 	inline TLorentzVector GetP4(void) const { return p4; }
@@ -112,12 +109,23 @@ class MEWeight{
 	inline void computeMatrixElements(){ process.sigmaKin(); }
 	inline const double* const getMatrixElements() const { return process.getMatrixElements(); }
 
+    void writeHists(void);
+    void fillWm(double value);
+    void fillWe(double value);
+    void fillT(double value);
+    void fillTbar(double value);
+	
 	private:
 
 	TLorentzVector p3, p4, p5, p6, Met;
 
 	CPPProcess process;
 	PDF *pdf;
+    
+    TH1D *hst_Wm;
+	TH1D *hst_We;
+	TH1D *hst_t;
+	TH1D *hst_tbar;
 };
 
 MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
@@ -129,14 +137,77 @@ MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TL
 
 	process.initProc(paramCardPath);
 	pdf = mkPDF("cteq6l1", 0);
+    
+    hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
+    hst_Wm->SetBit(TH1::kCanRebin);
+	hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
+    hst_We->SetBit(TH1::kCanRebin);
+	hst_t = new TH1D("test_t", "test_1D", 100,100,250);
+    hst_t->SetBit(TH1::kCanRebin);
+	hst_tbar = new TH1D("test_tbar", "test_1D", 100,100,250);
+    hst_tbar->SetBit(TH1::kCanRebin);
 }
 
-double MEWeight::ComputePdf(const int pid, const double x, const double q2){
+MEWeight::~MEWeight(){
+    delete hst_Wm; hst_Wm = NULL;
+    delete hst_We; hst_We = NULL;
+    delete hst_t; hst_t = NULL;
+    delete hst_tbar; hst_tbar = NULL;
+}
+
+void MEWeight::fillWm(double value){
+    hst_Wm->Fill(value);
+}
+
+void MEWeight::fillWe(double value){
+    hst_We->Fill(value);
+}
+
+void MEWeight::fillT(double value){
+    hst_t->Fill(value);
+}
+
+void MEWeight::fillTbar(double value){
+    hst_tbar->Fill(value);
+}
+
+double MEWeight::computePdf(const int pid, const double x, const double q2){
 	// return f(pid,x,q2)
 	if(x <= 0 || x >= 1)
 		return 0.;
 	else
 		return pdf->xfxQ2(pid, x, q2)/x;
+}
+
+void MEWeight::writeHists(void){
+	TCanvas *c = new TCanvas(TString("We")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+	c->cd();
+	hst_We->Draw();
+    c->Write();
+	c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Enu.png");
+	delete c; c = 0;
+	
+	c = new TCanvas(TString("Wm")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+	c->cd();
+	hst_Wm->Draw();
+    c->Write();
+	c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Munu.png");
+	delete c; c = 0;
+
+
+	c = new TCanvas(TString("t")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+	c->cd();
+	hst_t->Draw();
+    c->Write();
+	c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_t.png");
+	delete c; c = 0;
+	
+	c = new TCanvas(TString("tbar")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+	c->cd();
+	hst_tbar->Draw();
+    c->Write();
+	c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_tbar.png");
+	delete c; c = 0;
 }
 
 int BWTest(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
@@ -335,14 +406,19 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		return 0;
 	}
 
+    myWeight->fillWe(TMath::Sqrt(s13));
+    myWeight->fillWm(TMath::Sqrt(s25));
+    myWeight->fillT(TMath::Sqrt(s134));
+    myWeight->fillTbar(TMath::Sqrt(s256));
+
 
 	for(unsigned int i=0; i<E1.size(); i++){
-		if(E1.size() >= 0){
+		/*if(E1.size() >= 0){
 			if(E1.at(0) > E1.at(1))
 				i = 0;
 			else
 				i = 1;
-		}
+		}*/
 
 		const double e1 = E1.at(i);
 		const double e2 = E2.at(i);
@@ -352,8 +428,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		if(e1 < 0. || e2 < 0.){
 			//mycount++;
 			//cout << "Neg energies." << endl;
-			//continue;
-			break;
+			continue;
+			//break;
 		}
 
 		TLorentzVector p1,p2;
@@ -373,10 +449,14 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		const TLorentzVector p25 = p2 + p5;
 		const TLorentzVector p256 = p2 + p5 + p6;
 
+        /*myWeight->hst_We->Fill(p13.M());
+        myWeight->hst_Wm->Fill(p25.M());
+        myWeight->hst_t->Fill(p134.M());
+        myWeight->hst_tbar->Fill(p256.M());*/
 		/*cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
-		cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
+		cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;*/
 		
-		cout << "Electron (E,Px,Py,Pz) = ";
+		/*cout << "Electron (E,Px,Py,Pz) = ";
 		cout << p3.E() << "," << p3.Px() << "," << p3.Py() << "," << p3.Pz() << endl;
 		cout << "Electron neutrino (E,Px,Py,Pz) = ";
 		cout << p1.E() << "," << p1.Px() << "," << p1.Py() << "," << p1.Pz() << endl;
@@ -402,8 +482,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.){
 			//cout << "Fail!" << endl;
 			mycount++;
-			//continue;
-			break;
+			continue;
+			//break;
 		}
 	
 		// momentum vector definition
@@ -425,8 +505,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		p[7][0] = p6.E(); p[7][1] = p6.Px(); p[7][2] = p6.Py(); p[7][3] = p6.Pz();
 
 		// Compute the Pdfs
-		const double pdf1_1 = myWeight->ComputePdf(21,TMath::Abs(q1Pz/(SQRT_S/2.)), pow(M_T,2));
-		const double pdf1_2 = myWeight->ComputePdf(21,TMath::Abs(q2Pz/(SQRT_S/2.)), pow(M_T,2));
+		const double pdf1_1 = myWeight->computePdf(21,TMath::Abs(q1Pz/(SQRT_S/2.)), pow(M_T,2));
+		const double pdf1_2 = myWeight->computePdf(21,TMath::Abs(q2Pz/(SQRT_S/2.)), pow(M_T,2));
 	
 		// Compute flux factor 1/(2*x1*x2*s)
 		const double PhaseSpaceIn = 1.0 / ( 2. * TMath::Abs(q1Pz/(SQRT_S/2.)) * TMath::Abs(q2Pz/(SQRT_S/2.0)) * pow(SQRT_S,2)); 
@@ -454,8 +534,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		if(jac <= 0.){
 			//cout << "Jac infinite!" << endl;
 			mycount++;
-			//continue;
-			break;
+			continue;
+			//break;
 		}
 
 		// Evaluate matrix element
@@ -495,17 +575,9 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 	return 0;
 }
 
-double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met, double *time){
+double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met){
 	
-	/*TH1D *hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
-	TH1D *hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
-	TH1D *hst_t = new TH1D("test_t", "test_1D", 100,150,250);
-	TH1D *hst_tbar = new TH1D("test_tbar", "test_1D", 100,150,250);*/
-
 	cout << "Initializing integration..." << endl;
-	
-	TStopwatch chrono;
-	chrono.Start();
 
 	MEWeight myWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
 
@@ -522,7 +594,8 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	unsigned int flags = setFlags(verbosity, subregion, retainStateFile, level, smoothing, takeOnlyGridFromFile);
 
 	cout << "Starting integration..." << endl;
-	
+
+    //cubacores(0,0);
 	Vegas(
 		4,						// (int) dimensions of the integrated volume
 		1,						// (int) dimensions of the integrand
@@ -533,7 +606,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 		0.005,					// (double) requested relative accuracy |-> error < max(rel*value,abs)
 		0.,						// (double) requested absolute accuracy |
 		flags,					// (int) various control flags in binary format, see setFlags function
-		8945,						// (int) seed (seed==0 && no control flag => SOBOL; seed!=0 && control flag==0 => Mersenne Twister)
+		3568,						// (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
 		10000,					// (int) minimum number of integrand evaluations
 		50000,					// (int) maximum number of integrand evaluations (approx.!)
 		1000,					// (int) number of integrand evaluations per interations (to start)
@@ -551,80 +624,13 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	
 	cout << "Integration done." << endl;
 
-	/*for(Long_t loop=0; loop<nPoints; loop++){
-		int count_old = mycount;
-		FoamX->MakeEvent();					// generate MC event
-		FoamX->GetMCvect( MCvect );	 // get generated vector (x,y)
-	
-		double range1 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
-		double y1 = - TMath::ATan(M_W/G_W) + range1 * MCvect[0];
-		double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
-		//double range1 = 2000;
-		//double s13 = pow(M_W,2.) -1000+ range1*MCvect[0];
-
-		double range2 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
-		double y2 = - TMath::ATan(M_T/G_T) + range2 * MCvect[1];
-		double s134 = M_T * G_T * TMath::Tan(y2) + pow(M_T,2.);
-		//double range2 = 2000;
-		//double s134 = pow(M_T,2.) -1000+ range2*MCvect[1];
-
-		double range3 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
-		double y3 = - TMath::ATan(M_W/G_W) + range3 * MCvect[2];
-		double s25 = M_W * G_W * TMath::Tan(y3) + pow(M_W,2.);
-		//double range3 = 2000;
-		//double s25 = pow(M_W,2.)-1000 + range3*MCvect[2];
-
-		double range4 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
-		double y4 = - TMath::ATan(M_T/G_T) + range4 * MCvect[3];
-		double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
-		//double range4 = 2000;
-		//double s256 = pow(M_T,2.)-1000 + range4*MCvect[3];
-
-		if(count_old == mycount){
-			hst_We->Fill(TMath::Sqrt(s13));
-			hst_Wm->Fill(TMath::Sqrt(s25));
-			hst_t->Fill(TMath::Sqrt(s134));
-			hst_tbar->Fill(TMath::Sqrt(s256));
-		}
-	}*/
-
-	*time = chrono.CpuTime();
-
-	cout << "CPU time : " << chrono.CpuTime() << "	Real-time : " << chrono.RealTime() << endl;
 	cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
 	mycount = 0;
 
 	cout << " mcResult= " << mcResult << " +- " << mcError << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl;
-	
-	/*TCanvas *c = new TCanvas("c","Canvas for plotting",600,600);
-	c->cd();
-	hst_We->Draw();
-	//c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Enu.png");
-	delete hst_We; hst_We = 0;
-	delete c; c = 0;
-	
-	c = new TCanvas("c","Canvas for plotting",600,600);
-	c->cd();
-	hst_Wm->Draw();
-	//c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Munu.png");
-	delete hst_Wm; hst_Wm = 0;
-	delete c; c = 0;
 
-
-	c = new TCanvas("c","Canvas for plotting",600,600);
-	c->cd();
-	hst_t->Draw();
-	//c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_t.png");
-	delete hst_t; hst_t = 0;
-	delete c; c = 0;
+    //myWeight.writeHists();
 	
-	c = new TCanvas("c","Canvas for plotting",600,600);
-	c->cd();
-	hst_tbar->Draw();
-	//c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_tbar.png");
-	delete hst_tbar; hst_tbar = 0;
-	delete c; c = 0;*/
-
 	*error = mcError;
 	if(std::isnan(*error))
 	*error = 0.;
@@ -647,11 +653,9 @@ int main(int argc, char *argv[])
 	TChain chain("Delphes");
 	chain.Add(inputFile);
 
-	// Create object of class ExRootTreeReader
-	ExRootTreeReader *treeReader = new ExRootTreeReader(&chain);
-
 	// Get pointers to branches used in this analysis
-	TClonesArray *branchGen = treeReader->UseBranch("Particle");
+    TClonesArray *branchGen = 0;
+    chain.SetBranchAddress("Particle", &branchGen);
 
 	cout << "Entries:" << chain.GetEntries() << endl;
 
@@ -660,11 +664,11 @@ int main(int argc, char *argv[])
 
 	double Weight_TT_cpp, Weight_TT_Error_cpp;
 	bool Weighted_TT_cpp;
-	double time = 0;
-	outTree->Branch("Weight_TT_cpp", &Weight_TT_cpp);
-	outTree->Branch("Weight_TT_Error_cpp", &Weight_TT_Error_cpp);
-	outTree->Branch("Weighted_TT_cpp", &Weighted_TT_cpp);
-	outTree->Branch("Weight_TT_cpp_time", &time);
+	double time;
+	outTree->Branch("Weight_TT_cpp_bis", &Weight_TT_cpp);
+	outTree->Branch("Weight_TT_Error_cpp_bis", &Weight_TT_Error_cpp);
+	outTree->Branch("Weighted_TT_cpp_bis", &Weighted_TT_cpp);
+	outTree->Branch("Weight_TT_cpp_time_bis", &time);
 
 	//ofstream fout(outputFile);
 
@@ -690,9 +694,7 @@ int main(int argc, char *argv[])
 		end_evt = chain.GetEntries()-1;
 
 	for(int entry = start_evt; entry <= end_evt ; ++entry){
-		
 		// Load selected branches with data from specified event
-		treeReader->ReadEntry(entry);
 		chain.GetEntry(entry);
 
 		TLorentzVector gen_ep, gen_mum, gen_b, gen_bbar, gen_Met;
@@ -701,8 +703,8 @@ int main(int argc, char *argv[])
 
 		//int count_ep=0, count_mum=0;
 
-		for (Int_t i = 0; i < branchGen->GetEntries(); i++){
-			gen = (GenParticle *) branchGen->At(i);
+		for (int i = 0; i < branchGen->GetEntries(); i++){
+			gen = (GenParticle*) branchGen->At(i);
 			//cout << "Status=" << gen->Status << ", PID=" << gen->PID << ", E=" << gen->P4().E() << endl;
 			if (gen->Status == 1){
 				if (gen->PID == -11){
@@ -737,6 +739,10 @@ int main(int argc, char *argv[])
 
 		Weight_TT_cpp = 0.;
 		Weight_TT_Error_cpp = 0.;
+        time = 0.;
+	
+    	TStopwatch chrono;
+	    chrono.Start();
 
 		for(int permutation = 1; permutation <= 2; permutation ++){
 
@@ -744,13 +750,13 @@ int main(int argc, char *argv[])
 
 			count_perm = permutation;
 		
-			double weight = 0, temp_time;
+			double weight = 0;
 
-			vector<double> nbr_points;
+			/*vector<double> nbr_points;
 			vector<double> wgts;
 			vector<double> wgtsErr;
 			vector<double> wgtsErrX;
-			/*double max_wgt = 0.;
+			double max_wgt = 0.;
 			double min_wgt = 1.;*/
 
 
@@ -768,13 +774,12 @@ int main(int argc, char *argv[])
 				double error = 0;
 
 				if(permutation == 1)
-					weight = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, &temp_time)/2;
+					weight = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met)/2;
 				if(permutation == 2)
-					weight = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, &temp_time)/2;
+					weight = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met)/2;
 
 				Weight_TT_cpp += weight;
 				Weight_TT_Error_cpp += pow(error/2,2.);
-				time += temp_time;
 				
 				/*nbr_points.push_back(nCells);
 				//nbr_points.push_back(nPoints);
@@ -848,6 +853,9 @@ int main(int argc, char *argv[])
 		
 		//break;
 		}
+	    time = chrono.CpuTime();
+
+	    cout << "CPU time : " << chrono.CpuTime() << "	Real-time : " << chrono.RealTime() << endl;
 		
 		Weight_TT_Error_cpp = TMath::Sqrt(Weight_TT_Error_cpp);
 		Weighted_TT_cpp = true;
@@ -861,7 +869,5 @@ int main(int argc, char *argv[])
 
 	outTree->Write();
 	outFile->Close();
-
-	delete treeReader; 
 }
 
