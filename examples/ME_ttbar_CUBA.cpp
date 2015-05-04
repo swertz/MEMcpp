@@ -114,6 +114,8 @@ class MEWeight{
     void fillWe(double value);
     void fillT(double value);
     void fillTbar(double value);
+    void fillTTbar(double value);
+    void fillCountSol(int value);
 	
 	private:
 
@@ -126,6 +128,8 @@ class MEWeight{
 	TH1D *hst_We;
 	TH1D *hst_t;
 	TH1D *hst_tbar;
+	TH1D *hst_TTbar;
+	TH1I *hst_countSol;
 };
 
 MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
@@ -146,6 +150,9 @@ MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TL
     hst_t->SetBit(TH1::kCanRebin);
 	hst_tbar = new TH1D("test_tbar", "test_1D", 100,100,250);
     hst_tbar->SetBit(TH1::kCanRebin);
+	hst_TTbar = new TH1D("test_TTbar", "test_TTbar", 100,0,1000);
+    hst_TTbar->SetBit(TH1::kCanRebin);
+	hst_countSol = new TH1I("test_countsol", "test_1D", 5,0,5);
 }
 
 MEWeight::~MEWeight(){
@@ -153,6 +160,12 @@ MEWeight::~MEWeight(){
     delete hst_We; hst_We = NULL;
     delete hst_t; hst_t = NULL;
     delete hst_tbar; hst_tbar = NULL;
+    delete hst_TTbar; hst_TTbar = NULL;
+    delete hst_countSol; hst_countSol = NULL;
+}
+
+void MEWeight::fillCountSol(int value){
+    hst_countSol->Fill(value);
 }
 
 void MEWeight::fillWm(double value){
@@ -171,6 +184,10 @@ void MEWeight::fillTbar(double value){
     hst_tbar->Fill(value);
 }
 
+void MEWeight::fillTTbar(double value){
+    hst_TTbar->Fill(value);
+}
+
 double MEWeight::computePdf(const int pid, const double x, const double q2){
 	// return f(pid,x,q2)
 	if(x <= 0 || x >= 1)
@@ -180,7 +197,7 @@ double MEWeight::computePdf(const int pid, const double x, const double q2){
 }
 
 void MEWeight::writeHists(void){
-	TCanvas *c = new TCanvas(TString("We")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+	/*TCanvas *c = new TCanvas(TString("We")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
 	c->cd();
 	hst_We->Draw();
     c->Write();
@@ -207,7 +224,16 @@ void MEWeight::writeHists(void){
 	hst_tbar->Draw();
     c->Write();
 	c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_tbar.png");
-	delete c; c = 0;
+	delete c; c = 0;*/
+
+	/*TCanvas *c = new TCanvas(TString("countSol")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+	c->cd();
+	hst_countSol->Draw();
+    c->Write();
+	c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_countSol.png");
+	delete c; c = 0;*/
+
+    hst_TTbar->Write(("ttbar_" + SSTR(count_wgt) + "_" + SSTR(count_perm)).c_str());
 }
 
 int BWTest(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
@@ -265,7 +291,7 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 	*Value = 0.;
 
 	for(int i=0; i<*nDim; ++i){
-		if(Xarg[i] == 1. || Xarg[i] == 0.){
+		if(Xarg[i] == 1.){
 			mycount++;
 			return 0;
 		}
@@ -301,7 +327,7 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 
 	//cout << "y4=" << y4 << ", m256=" << TMath::Sqrt(s256) << endl;
 
-	if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M()){
+	if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M()){
 		//cout << "Masses too small!" << endl;
 		mycount++;
 		return 0;
@@ -395,10 +421,12 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 	vector<double> E1, E2;
 	//cout << "coefs=" << a11 << "," << a22 << "," << a12 << "," << a10 << "," << a01 << "," << a00 << endl;
 	//cout << "coefs=" << b11 << "," << b22 << "," << b12 << "," << b10 << "," << b01 << "," << b00 << endl;
-	solve2Quads(a11, a22, a12, a10, a01, a00, b11, b22, b12, b10, b01, b00, E1, E2);
+	solve2Quads(a11, a22, a12, a10, a01, a00, b11, b22, b12, b10, b01, b00, E1, E2, false);
 
 	// For each solution (E1,E2), find the neutrino 4-momenta p1,p2, find the initial quark momenta,
 	// evaluate the matrix element and the jacobian
+
+    int countSol = 0;
 	
 	if(E1.size() == 0){
 		//cout << "No solutions!" << endl;
@@ -406,11 +434,10 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		return 0;
 	}
 
-    myWeight->fillWe(TMath::Sqrt(s13));
+    /*myWeight->fillWe(TMath::Sqrt(s13));
     myWeight->fillWm(TMath::Sqrt(s25));
     myWeight->fillT(TMath::Sqrt(s134));
-    myWeight->fillTbar(TMath::Sqrt(s256));
-
+    myWeight->fillTbar(TMath::Sqrt(s256));*/
 
 	for(unsigned int i=0; i<E1.size(); i++){
 		/*if(E1.size() >= 0){
@@ -453,8 +480,15 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
         myWeight->hst_Wm->Fill(p25.M());
         myWeight->hst_t->Fill(p134.M());
         myWeight->hst_tbar->Fill(p256.M());*/
-		/*cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
-		cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;*/
+        /*cout << "Solution " << i << ":" << endl;
+		cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
+		cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
+		//cout << "Differences: W+ mass=" << TMath::Sqrt(s13)-p13.M() << ", Top mass=" << TMath::Sqrt(s134)-p134.M() << ", W- mass=" << TMath::Sqrt(s25)-p25.M() << ", Anti-top mass=" << TMath::Sqrt(s256)-p256.M() << endl << endl;
+		cout << "Accuracies: " << endl;
+        cout << "W+ mass=" << (TMath::Sqrt(s13)-p13.M())/p13.M() << endl;
+        cout << "Top mass=" << (TMath::Sqrt(s134)-p134.M())/p134.M() << endl;
+        cout << "W- mass=" << (TMath::Sqrt(s25)-p25.M())/p25.M() << endl;
+        cout << "Anti-top mass=" << (TMath::Sqrt(s256)-p256.M())/p256.M() << endl << endl;*/
 		
 		/*cout << "Electron (E,Px,Py,Pz) = ";
 		cout << p3.E() << "," << p3.Px() << "," << p3.Py() << "," << p3.Pz() << endl;
@@ -470,6 +504,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;*/
 	
 		const TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
+        
+        //myWeight->fillTTbar(tot.M());
 
 		const double ETot = tot.E();
 		const double PzTot = tot.Pz();
@@ -486,8 +522,27 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 			//break;
 		}
 	
+		// Compute the Pdfs
+        const double x1 = TMath::Abs(q1Pz/(SQRT_S/2.));
+        const double x2 = TMath::Abs(q2Pz/(SQRT_S/2.));
+
+		const double pdf1_1 = myWeight->computePdf(21, x1, pow(M_T,2));
+		const double pdf1_2 = myWeight->computePdf(21, x2, pow(M_T,2));
+	
+		// Compute flux factor 1/(2*x1*x2*s)
+		const double PhaseSpaceIn = 1.0 / ( 2. * x1 * x2 * pow(SQRT_S,2)); 
+
+		// Compute finale Phase Space for observed particles (not concerned by the change of variable)
+		// dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
+		const double dPhip3 = pow(p3.P(),2.)*TMath::Sin(p3.Theta())/(2.0*p3.E()*pow(2.*TMath::Pi(),3));
+		const double dPhip4 = pow(p4.P(),2.)*TMath::Sin(p4.Theta())/(2.0*p4.E()*pow(2.*TMath::Pi(),3));
+		const double dPhip5 = pow(p5.P(),2.)*TMath::Sin(p5.Theta())/(2.0*p5.E()*pow(2.*TMath::Pi(),3));
+		const double dPhip6 = pow(p6.P(),2.)*TMath::Sin(p6.Theta())/(2.0*p6.E()*pow(2.*TMath::Pi(),3));
+		const double PhaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
+
 		// momentum vector definition
-		vector<double*> p(1, new double[4]);
+		vector<double*> p;
+        p.push_back(new double[4]);
 		p[0][0] = q1Pz; p[0][1] = 0.0; p[0][2] = 0.0; p[0][3] = q1Pz;
 		p.push_back(new double[4]);
 		p[1][0] = TMath::Abs(q2Pz); p[1][1] = 0.0; p[1][2] = 0.0; p[1][3] = q2Pz;
@@ -504,21 +559,6 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		p.push_back(new double[4]);
 		p[7][0] = p6.E(); p[7][1] = p6.Px(); p[7][2] = p6.Py(); p[7][3] = p6.Pz();
 
-		// Compute the Pdfs
-		const double pdf1_1 = myWeight->computePdf(21,TMath::Abs(q1Pz/(SQRT_S/2.)), pow(M_T,2));
-		const double pdf1_2 = myWeight->computePdf(21,TMath::Abs(q2Pz/(SQRT_S/2.)), pow(M_T,2));
-	
-		// Compute flux factor 1/(2*x1*x2*s)
-		const double PhaseSpaceIn = 1.0 / ( 2. * TMath::Abs(q1Pz/(SQRT_S/2.)) * TMath::Abs(q2Pz/(SQRT_S/2.0)) * pow(SQRT_S,2)); 
-
-		// Compute finale Phase Space for observed particles (not concerned by the change of variable)
-		// dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
-		const double dPhip3 = pow(p3.P(),2.)*TMath::Sin(p3.Theta())/(2.0*p3.E()*pow(2.*TMath::Pi(),3));
-		const double dPhip4 = pow(p4.P(),2.)*TMath::Sin(p4.Theta())/(2.0*p4.E()*pow(2.*TMath::Pi(),3));
-		const double dPhip5 = pow(p5.P(),2.)*TMath::Sin(p5.Theta())/(2.0*p5.E()*pow(2.*TMath::Pi(),3));
-		const double dPhip6 = pow(p6.P(),2.)*TMath::Sin(p6.Theta())/(2.0*p6.E()*pow(2.*TMath::Pi(),3));
-		const double PhaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
-
 		// Set momenta for this event
 		myWeight->setProcessMomenta(p);
 
@@ -532,7 +572,7 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		momenta.push_back(p6);
 		const double jac = computeJacobianD(momenta, SQRT_S);
 		if(jac <= 0.){
-			//cout << "Jac infinite!" << endl;
+			cout << "Jac infinite!" << endl;
 			mycount++;
 			continue;
 			//break;
@@ -548,12 +588,13 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		*Value += PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
 
 		// free up memory
-		for(unsigned int i = 0; i < p.size(); ++i){
-			delete p.at(i); p.at(i) = 0;
-		}
+		for(unsigned int j = 0; j < p.size(); ++j){
+			delete [] p.at(j); p.at(j) = NULL;
+        }
 
-		break;
+        countSol++;
 	}
+    //myWeight->fillCountSol(countSol);
 
 	if(*Value == 0.){
 		mycount++;
@@ -582,7 +623,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	MEWeight myWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
 
 	int neval, nfail;
-	double mcResult=0, mcError=0, prob=0;
+	double mcResult=0, prob=0;
 	
 	char verbosity = 0; // 0-3
 	bool subregion = false; // true = only last set of samples is used for final evaluation of integral
@@ -595,7 +636,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 
 	cout << "Starting integration..." << endl;
 
-    //cubacores(0,0);
+    cubacores(0,0); // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
 	Vegas(
 		4,						// (int) dimensions of the integrated volume
 		1,						// (int) dimensions of the integrand
@@ -606,10 +647,10 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 		0.005,					// (double) requested relative accuracy |-> error < max(rel*value,abs)
 		0.,						// (double) requested absolute accuracy |
 		flags,					// (int) various control flags in binary format, see setFlags function
-		3568,						// (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
+		0,						// (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
 		10000,					// (int) minimum number of integrand evaluations
 		50000,					// (int) maximum number of integrand evaluations (approx.!)
-		1000,					// (int) number of integrand evaluations per interations (to start)
+		10000,					// (int) number of integrand evaluations per interations (to start)
 		0,						// (int) increase in number of integrand evaluations per interations
 		1000,					// (int) batch size for sampling
 		0,						// (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
@@ -618,7 +659,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 		&neval,					// (int*) actual number of evaluations done
 		&nfail,					// 0=desired accuracy was reached; -1=dimensions out of range; >0=accuracy was not reached
 		&mcResult,				// (double*) integration result ([ncomp])
-		&mcError,				// (double*) integration error ([ncomp])
+		error,				// (double*) integration error ([ncomp])
 		&prob					// (double*) Chi-square p-value that error is not reliable (ie should be <0.95) ([ncomp])
 	);
 	
@@ -627,11 +668,10 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
 	mycount = 0;
 
-	cout << " mcResult= " << mcResult << " +- " << mcError << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl;
+	cout << " mcResult= " << mcResult << " +- " << *error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl;
 
     //myWeight.writeHists();
 	
-	*error = mcError;
 	if(std::isnan(*error))
 	*error = 0.;
 	if(std::isnan(mcResult))
@@ -654,7 +694,7 @@ int main(int argc, char *argv[])
 	chain.Add(inputFile);
 
 	// Get pointers to branches used in this analysis
-    TClonesArray *branchGen = 0;
+    TClonesArray *branchGen = NULL;
     chain.SetBranchAddress("Particle", &branchGen);
 
 	cout << "Entries:" << chain.GetEntries() << endl;
@@ -665,10 +705,10 @@ int main(int argc, char *argv[])
 	double Weight_TT_cpp, Weight_TT_Error_cpp;
 	bool Weighted_TT_cpp;
 	double time;
-	outTree->Branch("Weight_TT_cpp_bis", &Weight_TT_cpp);
-	outTree->Branch("Weight_TT_Error_cpp_bis", &Weight_TT_Error_cpp);
-	outTree->Branch("Weighted_TT_cpp_bis", &Weighted_TT_cpp);
-	outTree->Branch("Weight_TT_cpp_time_bis", &time);
+	outTree->Branch("Weight_TT_cpp", &Weight_TT_cpp);
+	outTree->Branch("Weight_TT_Error_cpp", &Weight_TT_Error_cpp);
+	outTree->Branch("Weighted_TT_cpp", &Weighted_TT_cpp);
+	outTree->Branch("Weight_TT_cpp_time", &time);
 
 	//ofstream fout(outputFile);
 
@@ -746,7 +786,7 @@ int main(int argc, char *argv[])
 
 		for(int permutation = 1; permutation <= 2; permutation ++){
 
-			//entry = 3; permutation = 2;
+			//permutation = 1;
 
 			count_perm = permutation;
 		
@@ -820,7 +860,7 @@ int main(int argc, char *argv[])
 			double correctErr = madweight1Err[entry];
 			if(abs(correct-wgts.at(wgts.size()-1)) > abs(madweight2[entry]-wgts.at(wgts.size()-1))){
 				correct = madweight2[entry];
-				correctErr = madweight2Err[entry];
+				correctErr = madweight2Err[entry];///
 			}
 			double madwgts[2] = {correct, correct};
 			double madwgtsErr[2] = {correctErr, correctErr};

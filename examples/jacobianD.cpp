@@ -48,7 +48,7 @@ double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s
 	const double p56y = p5y + p6y;
 	const double p56z = p5z + p6z;
 
-    double jac = E3*(E5*
+    double inv_jac = E3*(E5*
              (p34z*(p1y*p2z*p56x - p1x*p2z*p56y - p1y*p2x*p56z + 
                   p1x*p2y*p56z) + 
                p1z*(-(p2z*p34y*p56x) + p2z*p34x*p56y - 
@@ -81,12 +81,15 @@ double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s
                   p2x*p34y*p3z) + 
                E2*(p34z*p3y*p56x - p34y*p3z*p56x - p34z*p3x*p56y + 
                   p34x*p3z*p56y))*p5z);
+                  
+    inv_jac *= 8.*16.*pow(TMath::Pi()*sqrt_s,2.);
 
 	//std::cout << "jac=" << abs(jac) << std::endl;
 	
-	if(TMath::Abs(jac) < JAC_MIN)
+	if(TMath::Abs(inv_jac) < INV_JAC_MIN){
+        std::cout << "Warning: jacobian is close to zero!" << std::endl;
 		return -1.;
-	else
-		return 1./( TMath::Abs(jac) * 8.*16.*pow(TMath::Pi()*sqrt_s,2.) );
+	}else
+		return 1./TMath::Abs(inv_jac);
 }
 
