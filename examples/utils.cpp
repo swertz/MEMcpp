@@ -30,14 +30,13 @@ bool solveQuadratic(const double a, const double b, const double c, vector<doubl
 
   if(!a){
     if(!b){
-      if(verbose)
-        cout << "No solution to equation " << a << " x^2 + " << b << " x + " << c << endl << endl;
+      cout << "No solution to equation " << a << " x^2 + " << b << " x + " << c << endl << endl;
       return false;
     }
-  roots.push_back(-c/b);
+    roots.push_back(-c/b);
     if(verbose)
       cout << "Solution of " << b << " x + " << c << ": " << roots[0] << ", test = " << b*roots[0] + c << endl << endl;
-  return true;
+    return true;
   }
 
   const double rho = SQ(b) - 4.*a*c;
@@ -68,7 +67,7 @@ bool solveQuadratic(const double a, const double b, const double c, vector<doubl
 bool solveCubic(const double a, const double b, const double c, const double d, vector<double>& roots, bool verbose){
 
   if(a == 0)
-  return solveQuadratic(b, c, d, roots, verbose);
+    return solveQuadratic(b, c, d, roots, verbose);
 
   const double an = b/a;
   const double bn = c/a;
@@ -113,7 +112,7 @@ bool solveCubic(const double a, const double b, const double c, const double d, 
 bool solveQuartic(const double a, const double b, const double c, const double d, const double e, vector<double>& roots, bool verbose){
   
   if(!a)
-  return solveCubic(b, c, d, e, roots, verbose);
+    return solveCubic(b, c, d, e, roots, verbose);
 
   if(!b && !c && !d){
     roots.push_back(0.);
@@ -164,7 +163,7 @@ bool solveQuartic(const double a, const double b, const double c, const double d
     }
   }
 
-  return nRoots;
+  return nRoots > 0;
 }
 
 bool solve2Quads(const double a20, const double a02, const double a11, const double a10, const double a01, const double a00,

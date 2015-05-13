@@ -18,7 +18,7 @@ i = 0
 
 while start_evt < max_evt:
 	end_evt += evt_per_job
-	LaunchOnCondor.SendCluster_Push(["BASH", path + "/condor.sh", path + "/data/ttbar_weighted_noTF_isr0_pdfMtop_noMCoPerms_2000evt.root", "ttbar_noTF_isr0_pdfMtop_noMCoPerms_as013_cuba_sobol_noSmooth_jacthres_newUtilsTry2_50000_it10000_start10000_" + str(i) + ".root", start_evt, end_evt])
+	LaunchOnCondor.SendCluster_Push(["BASH", os.path.join(path, "condor.sh"), os.path.join(path, "data/ttbar_weighted_noTF_isr0_pdfMtop_noMCoPerms_2000evt.root"), "ttbar_DMEM_MTTbar_try0__" + str(i) + ".root", start_evt, end_evt])
 	#LaunchOnCondor.SendCluster_Push(["BASH", path + "/condor.sh", path + "/results/ttbar_noTF_isr0_pdfMtop_noMCoPerms_as013_cuba_Mersenne_noSmooth_50000.root", "ttbar_noTF_isr0_pdfMtop_noMCoPerms_as013_cuba_Mersenne_noSmooth_50000_bis_" + str(i) + ".root", start_evt, end_evt])
 	start_evt = end_evt+1
 	i += 1
