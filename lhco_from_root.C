@@ -32,11 +32,11 @@ void lhco_from_root(const char* in, const char* out){
 	 }
 	
 	 fout << "0 " << entry+1 << " 0" << endl;
-	 fout << "1 1 " << gen_ep.Eta() << " " << gen_ep.Phi() << " " << gen_ep.Pt() << " 0.000511 1 0 0 0 0" << endl;
-	 fout << "2 2 " << gen_mum.Eta() << " " << gen_mum.Phi() << " " << gen_mum.Pt() << " 0.105658 -1 0 0 0 0" << endl;
-	 fout << "3 4 " << gen_b.Eta() << " " << gen_b.Phi() << " " << gen_b.Pt() << " " << gen_b.M() << " 0 2 0 0 0" << endl;
-	 fout << "4 4 " << gen_bbar.Eta() << " " << gen_bbar.Phi() << " " << gen_bbar.Pt() << " " << gen_bbar.M() << " 0 2 0 0 0" << endl;
-	 fout << "5 6 0 " << gen_Met.Phi() << " " << gen_Met.Pt() << " 0 0 0 0 0 0" << endl;
+	 fout << "1 1 " << gen_ep.Eta() << " " << gen_ep.Phi()+TMath::Pi() << " " << gen_ep.Pt() << " 0.000511 1 0 0 0 0" << endl;
+	 fout << "2 2 " << gen_mum.Eta() << " " << gen_mum.Phi()+TMath::Pi() << " " << gen_mum.Pt() << " 0.105658 -1 0 0 0 0" << endl;
+	 fout << "3 4 " << gen_b.Eta() << " " << gen_b.Phi()+TMath::Pi() << " " << gen_b.Pt() << " " << gen_b.M() << " 0 2 0 0 0" << endl;
+	 fout << "4 4 " << gen_bbar.Eta() << " " << gen_bbar.Phi()+TMath::Pi() << " " << gen_bbar.Pt() << " " << gen_bbar.M() << " 0 2 0 0 0" << endl;
+	 fout << "5 6 0 " << gen_Met.Phi()+TMath::Pi() << " " << gen_Met.Pt() << " 0 0 0 0 0 0" << endl;
 	}
 
 }
