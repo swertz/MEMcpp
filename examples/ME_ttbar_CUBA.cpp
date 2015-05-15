@@ -19,6 +19,7 @@
 #include "TFile.h"
 #include "TClonesArray.h"
 #include "TH1.h"
+#include "TH2.h"
 #include "TGraph.h"
 #include "TGraphErrors.h"
 #include "TPad.h"
@@ -76,13 +77,13 @@ unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainSta
 
   unsigned int flags = 0;
 
-  unsigned int opt_subregion = 0x04; // bit 2
-  unsigned int opt_smoothing = 0x08; // bit 3
-  unsigned int opt_retainStateFile = 0x10; // bit 4
-  unsigned int opt_takeOnlyGridFromFile = 0x20; // bit 5
+  unsigned int opt_subregion = 0x04; // bit 2 (=4)
+  unsigned int opt_smoothing = 0x08; // bit 3 (=8)
+  unsigned int opt_retainStateFile = 0x10; // bit 4 (=16)
+  unsigned int opt_takeOnlyGridFromFile = 0x20; // bit 5 (=32)
 
   level <<= 8; // bits 8-31
-  flags |= level | verbosity; // verbosity: bis 0-1
+  flags |= level | verbosity; // verbosity: bits 0-1
   if(subregion) flags |= opt_subregion;
   if(!smoothing) flags |= opt_smoothing; // careful true-false inverted
   if(retainStateFile) flags |= opt_retainStateFile;
@@ -98,12 +99,193 @@ unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainSta
   return flags;
 }
 
+class BinnedTF{
+  public:
+
+  BinnedTF(const std::string particleName, const std::string histName, TFile* file);
+  ~BinnedTF();
+  double Evaluate(const double Erec, const double Egen) const;
+  double GetDeltaRange() const;
+  double GetDeltaMin() const;
+  double GetDeltaMax() const;
+  void SetDeltaRange(double min, double max);
+
+  private:
+
+  std::string _particleName;
+  double _histDeltaMin, _histDeltaMax;
+  double _deltaMin, _deltaMax, _deltaRange;
+  double _EgenMax;
+  const TH2D* _TF;
+};
+
+BinnedTF::BinnedTF(const std::string particleName, const std::string histName, TFile* file){
+  _TF = dynamic_cast<TH2D*>( file->Get(histName.c_str()) );
+  if(!_TF){
+    cerr << "Error when defining binned TF for paricle " << particleName << ": unable to retrieve " << histName << " from file " << file->GetPath() << ".\n";
+    exit(1);
+  }
+
+  cout << "Creating TF component for " << particleName << " from histogram " << histName << ".\n";
+
+  _particleName = particleName;
+  _histDeltaMin = _TF->GetYaxis()->GetXmin();
+  _histDeltaMax = _TF->GetYaxis()->GetXmax();
+  //_histDeltaMin = 0.; 
+  //_histDeltaMax = 0.;
+  _deltaMin = _histDeltaMin;
+  _deltaMax = _histDeltaMax;
+  _deltaRange = _deltaMax - _deltaMin; 
+  _EgenMax = _TF->GetXaxis()->GetXmax();
+ 
+  cout << "Delta range is " << _deltaRange << ", max. energy is " << _EgenMax << endl;
+}
+
+BinnedTF::~BinnedTF(){
+  delete _TF; _TF = NULL;
+}
+
+double BinnedTF::Evaluate(const double Erec, const double Egen) const {
+  //cout << "Evaluating TF for particle " << _particleName << ": Erec = " << Erec << ", Egen = " << Egen;
+  double delta = Erec - Egen;
+  if(Egen < 0. || Erec < 0. || Egen > _EgenMax || delta > _deltaMax || delta < _deltaMin){
+    //cout << "... Out of range!" << endl;
+    return 0.;
+  }
+
+  const int xBin = _TF->GetXaxis()->FindBin(Egen);
+  const int yBin = _TF->GetYaxis()->FindBin(delta);
+
+  //cout << ", TF = " << _TF->GetBinContent(xBin, yBin) << endl;
+  
+  return _TF->GetBinContent(xBin, yBin);
+}
+
+double BinnedTF::GetDeltaRange() const {
+  return _deltaRange;
+}
+
+double BinnedTF::GetDeltaMin() const {
+  return _deltaMin;
+}
+
+double BinnedTF::GetDeltaMax() const {
+  return _deltaMax;
+}
+
+void BinnedTF::SetDeltaRange(double min, double max){
+  if(min < _histDeltaMin)
+    min = _histDeltaMin;
+  
+  if(max > _histDeltaMax)
+    max = _histDeltaMax;
+
+  _deltaMin = min;
+  _deltaMax = max;
+  _deltaRange = _deltaMax - _deltaMin;
+}
+
+class TransferFunction{
+  public:
+
+  TransferFunction(const std::string file);
+  ~TransferFunction();
+
+  void DefineComponent(const std::string particleName, const std::string histName);
+
+  double Evaluate(const std::string particleName, const double Erec, const double Egen);
+  double GetDeltaRange(const std::string particleName);
+  double GetDeltaMin(const std::string particleName);
+  double GetDeltaMax(const std::string particleName);
+  void SetDeltaRange(const std::string particleName, const double min, const double max);
+
+  private:
+
+  TFile* _file;
+
+  std::map< std::string, BinnedTF* > _TF;
+};
+
+TransferFunction::TransferFunction(const std::string file){
+  _file = new TFile(file.c_str(), "READ");
+  
+  if( _file->IsZombie() ){
+    cerr << "Error opening TF file " << file << ".\n";
+    exit(1);
+  }
+}
+
+TransferFunction::~TransferFunction(){
+  for(auto &i: _TF)
+    delete i.second;
+  delete _file; _file = NULL;
+}
+  
+void TransferFunction::DefineComponent(const std::string particleName, const std::string histName){
+  if( _TF.find(particleName) != _TF.end() ){
+    cerr << "Error: TF component for " << particleName << " is already defined!" << endl;
+    exit(1);
+  }
+
+  cout << "Adding TF component for " << particleName << " from histogram " << histName << ".\n";
+
+  _TF[particleName] = new BinnedTF(particleName, histName, _file);
+}
+
+double TransferFunction::Evaluate(const std::string particleName, const double Erec, const double Egen){
+  // We might want to avoid to check this every time, since it might slow things down too much
+  if( _TF.find(particleName) == _TF.end() ){
+    cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
+    exit(1);
+  }
+
+  return _TF[particleName]->Evaluate(Erec, Egen);
+}
+
+double TransferFunction::GetDeltaRange(const std::string particleName){
+  // We might want to avoid to check this every time, since it might slow things down too much
+  if( _TF.find(particleName) == _TF.end() ){
+    cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
+    exit(1);
+  }
+
+  return _TF[particleName]->GetDeltaRange();
+}
+
+double TransferFunction::GetDeltaMin(const std::string particleName){
+  // We might want to avoid to check this every time, since it might slow things down too much
+  if( _TF.find(particleName) == _TF.end() ){
+    cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
+    exit(1);
+  }
+
+  return _TF[particleName]->GetDeltaMin();
+}
+
+double TransferFunction::GetDeltaMax(const std::string particleName){
+  // We might want to avoid to check this every time, since it might slow things down too much
+  if( _TF.find(particleName) == _TF.end() ){
+    cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
+    exit(1);
+  }
+
+  return _TF[particleName]->GetDeltaMax();
+}
+
+void TransferFunction::SetDeltaRange(const std::string particleName, double min, double max){
+  // We might want to avoid to check this every time, since it might slow things down too much
+  if( _TF.find(particleName) == _TF.end() ){
+    cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
+    exit(1);
+  }
+
+  return _TF[particleName]->SetDeltaRange(min, max);
+}
 
 class MEEvent{
   public:
 
   MEEvent();
-  //MEEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
   void SetVectors(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
   ~MEEvent();
 
@@ -113,47 +295,20 @@ class MEEvent{
   inline TLorentzVector GetP6(void) const { return p6; }
   inline TLorentzVector GetMet(void) const { return Met; }
 
-  void writeHists(void);
+  //void writeHists(void);
 
-  TH1D* GetTTbar();
+  //TH1D* GetTTbar();
   
   private:
 
   TLorentzVector p3, p4, p5, p6, Met;
 
-  /*TH1D *hst_Wm;
-  TH1D *hst_We;
-  TH1D *hst_t;
-  TH1D *hst_tbar;*/
-  TH1D *hst_TTbar;
-  //TH1I *hst_countSol;
+  //TH1D *hst_TTbar;
 };
 
 MEEvent::MEEvent(){
-  hst_TTbar = new TH1D("test_TTbar", "test_TTbar", BINNING, START, STOP); 
-  //hst_TTbar->Sumw2();
+  //hst_TTbar = new TH1D("test_TTbar", "test_TTbar", BINNING, START, STOP); 
 }
-
-/*MEEvent::MEEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
-  p3 = ep;
-  p5 = mum;
-  p4 = b;
-  p6 = bbar;
-  Met = met;
-
-  hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
-  hst_Wm->SetBit(TH1::kCanRebin);
-  hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
-  hst_We->SetBit(TH1::kCanRebin);
-  hst_t = new TH1D("test_t", "test_1D", 100,100,250);
-  hst_t->SetBit(TH1::kCanRebin);
-  hst_tbar = new TH1D("test_tbar", "test_1D", 100,100,250);
-  hst_tbar->SetBit(TH1::kCanRebin);
-  hst_TTbar = new TH1D("test_TTbar", "test_TTbar", 1000, 300, 1500);
-  //hst_TTbar->SetBit(TH1::kCanRebin);
-  hst_TTbar->Sumw2();
-  //hst_countSol = new TH1I("test_countsol", "test_1D", 5,0,5);
-}*/
 
 void MEEvent::SetVectors(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
   p3 = ep;
@@ -162,71 +317,34 @@ void MEEvent::SetVectors(const TLorentzVector ep, const TLorentzVector mum, cons
   p6 = bbar;
   Met = met;
 
-  if(hst_TTbar)
-    hst_TTbar->Reset();
+  /*if(hst_TTbar)
+    hst_TTbar->Reset();*/
 }
 
 MEEvent::~MEEvent(){
-  /*delete hst_Wm; hst_Wm = NULL;
-  delete hst_We; hst_We = NULL;
-  delete hst_t; hst_t = NULL;
-  delete hst_tbar; hst_tbar = NULL;*/
-  delete hst_TTbar; hst_TTbar = NULL;
-  //delete hst_countSol; hst_countSol = NULL;
+  //delete hst_TTbar; hst_TTbar = NULL;
 }
 
-TH1D* MEEvent::GetTTbar(){
+/*TH1D* MEEvent::GetTTbar(){
   return hst_TTbar;
-}
+}*/
 
-void MEEvent::writeHists(void){
-  /*TCanvas *c = new TCanvas(TString("We")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
-  c->cd();
-  hst_We->Draw();
-  c->Write();
-  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Enu.png");
-  delete c; c = 0;
-  
-  c = new TCanvas(TString("Wm")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
-  c->cd();
-  hst_Wm->Draw();
-  c->Write();
-  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_Munu.png");
-  delete c; c = 0;
-
-
-  c = new TCanvas(TString("t")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
-  c->cd();
-  hst_t->Draw();
-  c->Write();
-  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_t.png");
-  delete c; c = 0;
-  
-  c = new TCanvas(TString("tbar")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
-  c->cd();
-  hst_tbar->Draw();
-  c->Write();
-  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_tbar.png");
-  delete c; c = 0;*/
-
-  /*TCanvas *c = new TCanvas(TString("countSol")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
-  c->cd();
-  hst_countSol->Draw();
-  c->Write();
-  c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_countSol.png");
-  delete c; c = 0;*/
-
+/*void MEEvent::writeHists(void){
   TCanvas *c = new TCanvas(TString("Mttbar")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
   c->cd();
   hst_TTbar->Draw();
   c->Write();
   c->Print(TString("plots/Mttbar_")+SSTR(count_wgt)+"_"+SSTR(count_perm)+".png");
   delete c; c = 0;
-}
+}*/
 
 class MEWeight{
   public:
 
+  double Integrand(const double* Xarg, const double *weight);
+  int ComputeTransformD(const double s13, const double s134, const double s25, const double s256,
+                        const TLorentzVector p3, const TLorentzVector p4, const TLorentzVector p5, const TLorentzVector p6, const TLorentzVector Met,
+                        std::vector<TLorentzVector> &p1, std::vector<TLorentzVector> &p2); 
   inline double ComputePdf(const int pid, const double x, const double q2);
   inline void setProcessMomenta(vector<double*> &p){ process.setMomenta(p); }
   inline void computeMatrixElements(){ process.sigmaKin(); }
@@ -234,33 +352,36 @@ class MEWeight{
   double ComputeWeight(double &error);
   MEEvent* GetEvent();
   void SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
+  void AddTF(const std::string particleName, const std::string histName);
 
-  void WriteHist();
+  //void WriteHist();
 
-  MEWeight(const string paramCardPath, const string pdfName);
+  MEWeight(const string paramCardPath, const string pdfName, const string fileTF);
   ~MEWeight();
 
   private:
 
-  TH1D* hst_TTbar;
+  //TH1D* hst_TTbar;
 
   CPPProcess process;
   PDF* pdf;
   MEEvent* myEvent;
+  TransferFunction* myTF;
 }; 
   
-MEWeight::MEWeight(const string paramCardPath, const string pdfName){
+MEWeight::MEWeight(const string paramCardPath, const string pdfName, const string fileTF){
 
-  cout << "Initizialing Matrix Element computation with:" << endl;
+  cout << "Initializing Matrix Element computation with:" << endl;
   cout << "Parameter card " << paramCardPath << endl;
   cout << "PDF " << pdfName << endl;
+  cout << "TF file " << fileTF << endl;
 
   process.initProc(paramCardPath);
   pdf = mkPDF(pdfName, 0);
   myEvent = new MEEvent();
+  myTF = new TransferFunction(fileTF);
 
-  hst_TTbar = new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP);
-  //hst_TTbar->Sumw2();
+  //hst_TTbar = new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP);
 }
 
 double MEWeight::ComputePdf(const int pid, const double x, const double q2){
@@ -281,19 +402,23 @@ void MEWeight::SetEvent(const TLorentzVector ep, const TLorentzVector mum, const
   myEvent->SetVectors(ep, mum, b, bbar, met);
 }
 
-void MEWeight::WriteHist(){
+void MEWeight::AddTF(const std::string particleName, const std::string histName){
+  myTF->DefineComponent(particleName, histName);
+}
+
+/*void MEWeight::WriteHist(){
 
   hst_TTbar->Scale(1./hst_TTbar->Integral());
 
-  /*TCanvas *c = new TCanvas("DMEM_TTbar", "Canvas for plotting", 600, 600);
+  TCanvas *c = new TCanvas("DMEM_TTbar", "Canvas for plotting", 600, 600);
   c->cd();
-  hst_TTbar->Draw();*/
+  hst_TTbar->Draw();
   //c->Write();
   hst_TTbar->Write();
   //c->Print("plots/DMEM_ttbar.png", "png");
   //delete c; c = 0;
 
-}
+}*/
 
 double MEWeight::ComputeWeight(double &error){
   
@@ -315,19 +440,18 @@ double MEWeight::ComputeWeight(double &error){
 
   cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
   Vegas(
-    4,                      // (int) dimensions of the integrated volume
+    8,                      // (int) dimensions of the integrated volume
     1,                      // (int) dimensions of the integrand
     (integrand_t) MEFunct,  // (integrand_t) integrand (cast to integrand_t)
-    //(integrand_t) BWTest, // (integrand_t) integrand (cast to integrand_t)
     (void*) this,           // (void*) pointer to additional arguments passed to integrand
     1,                      // (int) maximum number of points given the integrand in each invocation (=> SIMD) ==> PS points = vector of sets of points (x[ndim][nvec]), integrand returns vector of vector values (f[ncomp][nvec])
     0.005,                  // (double) requested relative accuracy |-> error < max(rel*value,abs)
     0.,                     // (double) requested absolute accuracy |
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
-    5000,                  // (int) minimum number of integrand evaluations
+    10000,                  // (int) minimum number of integrand evaluations
     50000,                  // (int) maximum number of integrand evaluations (approx.!)
-    5000,                  // (int) number of integrand evaluations per interations (to start)
+    1000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
     1000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
@@ -349,11 +473,11 @@ double MEWeight::ComputeWeight(double &error){
 
   //myEvent->writeHists();
 
-  if(myEvent->GetTTbar()->Integral()){
+  /*if(myEvent->GetTTbar()->Integral()){
     myEvent->GetTTbar()->Scale(1./myEvent->GetTTbar()->Integral());
     myEvent->GetTTbar()->SetEntries(1);
     hst_TTbar->Add(myEvent->GetTTbar());
-  }
+  }*/
   
   if(std::isnan(error))
   error = 0.;
@@ -367,120 +491,26 @@ MEWeight::~MEWeight(){
   delete pdf; pdf = NULL;
   cout << "Deleting myEvent" << endl;
   delete myEvent; myEvent = NULL;
-  cout << "Deleting hst_TTbar" << endl;
-  delete hst_TTbar; hst_TTbar = NULL;
-}
-
-int BWTest(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
-  *Value = 0.;
-
-  for(int i=0; i<*nDim; ++i){
-    if(Xarg[i] == 1. || Xarg[i] == 0.){
-      mycount++;
-      return 0;
-    }
-  }
-
-  double range1 = TMath::Pi();
-  double y1 = - TMath::Pi()/2. + range1 * Xarg[0];
-  const double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
-
-  double range2 = TMath::Pi();
-  double y2 = - TMath::Pi()/2. + range2 * Xarg[1];
-  const double s134 = M_T * G_T * TMath::Tan(y2) + pow(M_T,2.);
-
-  double range3 = TMath::Pi();
-  double y3 = - TMath::Pi()/2. + range3 * Xarg[2];
-  const double s25 = M_W * G_W * TMath::Tan(y3) + pow(M_W,2.);
-
-  double range4 = TMath::Pi();
-  double y4 = - TMath::Pi()/2. + range4 * Xarg[3];
-  const double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
-  
-  *Value = BreitWigner(s13,M_W,G_W) * BreitWigner(s25,M_W,G_W) * BreitWigner(s134,M_T,G_T) * BreitWigner(s256,M_T,G_T);
-  
-  double flatterJac = range1 * range2 * range3 * range4;
-  flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
-  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);
-  
-  flatterJac /= pow(TMath::Pi(),4);
-
-  *Value *= flatterJac;
-
-  return 0;
+  cout << "Deleting myTF" << endl;
+  delete myTF; myTF = NULL;
+  //cout << "Deleting hst_TTbar" << endl;
+  //delete hst_TTbar; hst_TTbar = NULL;
 }
 
 int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << endl;
-
-  MEWeight* myWeight = (MEWeight*) inputs;
-  MEEvent* myEvent = myWeight->GetEvent();
-
-  TLorentzVector p3 = myEvent->GetP3();
-  TLorentzVector p4 = myEvent->GetP4();
-  TLorentzVector p5 = myEvent->GetP5();
-  TLorentzVector p6 = myEvent->GetP6();
-  TLorentzVector Met = myEvent->GetMet();
-
-  *Value = 0.;
-
-  for(int i=0; i<*nDim; ++i){
-    if(Xarg[i] == 1.){
-      mycount++;
-      return 0;
-    }
-  }
-
-  // We flatten the Breit-Wigners by doing a change of variable for each resonance separately
-  // s = M G tan(y) + M^2
-  // jac = M G / cos^2(y)
-  // ==> BW(s(y))*jac(y) is flat in the variable y, as BW(s) = 1/((s-M^2)^2 - (GM)^2)
-  // Where y = -arctan(M/G) + (pi/2+arctan(M/G))*x_foam (x_foam between 0 and 1 => s between 0 and infinity)
-
-  const double range1 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
-  const double y1 = - TMath::ATan(M_W/G_W) + range1 * Xarg[0];
-  const double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
-
-  //cout << "y1=" << y1 << ", m13=" << TMath::Sqrt(s13) << endl;
-
-  const double range2 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
-  const double y2 = - TMath::ATan(M_T/G_T) + range2 * Xarg[1];
-  const double s134 = M_T * G_T * TMath::Tan(y2) + pow(M_T,2.);
-
-  //cout << "y2=" << y2 << ", m134=" << TMath::Sqrt(s134) << endl;
-
-  const double range3 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
-  const double y3 = - TMath::ATan(M_W/G_W) + range3 * Xarg[2];
-  const double s25 = M_W * G_W * TMath::Tan(y3) + pow(M_W,2.);
-
-  //cout << "y3=" << y3 << ", m25=" << TMath::Sqrt(s25) << endl;
-
-  const double range4 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
-  const double y4 = - TMath::ATan(M_T/G_T) + range4 * Xarg[3];
-  const double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
-
-  //cout << "y4=" << y4 << ", m256=" << TMath::Sqrt(s256) << endl;
   
-  double flatterJac = range1 * range2 * range3 * range4;
-  flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
-  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);
+  MEWeight* myWeight = (MEWeight*) inputs;
+  *Value = myWeight->Integrand(Xarg, weight);
 
-  if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M()){
-    //cout << "Masses too small!" << endl;
-    mycount++;
-    return 0;
-  }
-
-  //cout << "weight = " << *weight << endl;
-
-  // #### FOR NWA
-  /*s13 = pow(M_W,2.);
-  s134 = pow(M_T,2.);
-  s25 = pow(M_W,2.);
-  s256 = pow(M_T,2.);*/
-
+  return 0;
+}
+  
+int MEWeight::ComputeTransformD(const double s13, const double s134, const double s25, const double s256,
+                                const TLorentzVector p3, const TLorentzVector p4, const TLorentzVector p5, const TLorentzVector p6, const TLorentzVector Met,
+                                std::vector<TLorentzVector> &p1, std::vector<TLorentzVector> &p2){
   // pT = transverse total momentum of the visible particles
   //TLorentzVector pT = p3 + p4 + p5 + p6;
   const TLorentzVector pT = -Met;
@@ -565,63 +595,152 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
   //cout << "coefs=" << b11 << "," << b22 << "," << b12 << "," << b10 << "," << b01 << "," << b00 << endl;
   solve2Quads(a11, a22, a12, a10, a01, a00, b11, b22, b12, b10, b01, b00, E1, E2, false);
 
-  // For each solution (E1,E2), find the neutrino 4-momenta p1,p2, find the initial quark momenta,
-  // evaluate the matrix element and the jacobian
+  // For each solution (E1,E2), find the neutrino 4-momenta p1,p2
 
-  int countSol = 0;
-  
   if(E1.size() == 0){
     //cout << "No solutions!" << endl;
-    mycount++;
     return 0;
   }
 
-  /*myWeight->fillWe(TMath::Sqrt(s13));
-  myWeight->fillWm(TMath::Sqrt(s25));
-  myWeight->fillT(TMath::Sqrt(s134));
-  myWeight->fillTbar(TMath::Sqrt(s256));*/
-
   for(unsigned int i=0; i<E1.size(); i++){
-    /*if(E1.size() >= 0){
-      if(E1.at(0) > E1.at(1))
-        i = 0;
-      else
-        i = 1;
-    }*/
-
     const double e1 = E1.at(i);
     const double e2 = E2.at(i);
 
     //cout << endl << "## Evaluating Matrix Element based on solutions e1 = " << e1 << ", e2 = " << e2 << endl << endl;
 
     if(e1 < 0. || e2 < 0.){
-      //mycount++;
       //cout << "Neg energies." << endl;
       continue;
-      //break;
     }
 
-    TLorentzVector p1,p2;
+    TLorentzVector tempp1,tempp2;
 
-    p1.SetPx( alpha1*e1 + beta1*e2 + gamma1 );
-    p1.SetPy( alpha2*e1 + beta2*e2 + gamma2 );
-    p1.SetPz( alpha3*e1 + beta3*e2 + gamma3 );
-    p1.SetE(e1);
+    tempp1.SetPx( alpha1*e1 + beta1*e2 + gamma1 );
+    tempp1.SetPy( alpha2*e1 + beta2*e2 + gamma2 );
+    tempp1.SetPz( alpha3*e1 + beta3*e2 + gamma3 );
+    tempp1.SetE(e1);
 
-    p2.SetPx( alpha5*e1 + beta5*e2 + gamma5 );
-    p2.SetPy( alpha6*e1 + beta6*e2 + gamma6 );
-    p2.SetPz( alpha4*e1 + beta4*e2 + gamma4 ); 
-    p2.SetE(e2);
+    tempp2.SetPx( alpha5*e1 + beta5*e2 + gamma5 );
+    tempp2.SetPy( alpha6*e1 + beta6*e2 + gamma6 );
+    tempp2.SetPz( alpha4*e1 + beta4*e2 + gamma4 ); 
+    tempp2.SetE(e2);
+
+    p1.push_back(tempp1);
+    p2.push_back(tempp2);
+  }
+
+  return p1.size();
+}
+
+double MEWeight::Integrand(const double* Xarg, const double *weight){
+  double Value = 0.;
+
+  for(int i=0; i<4; ++i){
+    if(Xarg[i] == 1.){
+      mycount++;
+      return 0;
+    }
+  }
+
+  TLorentzVector p3rec = myEvent->GetP3();
+  TLorentzVector p4rec = myEvent->GetP4();
+  TLorentzVector p5rec = myEvent->GetP5();
+  TLorentzVector p6rec = myEvent->GetP6();
+  TLorentzVector Met = myEvent->GetMet();
+
+  double TFValue = 1.;
+
+  TLorentzVector p3 = p3rec;
+  const double p3DeltaRange = myTF->GetDeltaRange("electron");
+  const double E3gen = p3rec.E() + myTF->GetDeltaMin("electron") + p3DeltaRange * Xarg[4];
+  p3.SetE(E3gen);
+  if(p3DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("electron", p3rec.E(), E3gen) * p3DeltaRange;
+
+  TLorentzVector p4 = p4rec;
+  const double p4DeltaRange = myTF->GetDeltaRange("jet");
+  const double E4gen = p4rec.E() + myTF->GetDeltaMin("jet") + p4DeltaRange * Xarg[5];
+  p4.SetE(E4gen);
+  if(p4DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("jet", p4rec.E(), E4gen) * p4DeltaRange;
+
+  TLorentzVector p5 = p5rec;
+  const double p5DeltaRange = myTF->GetDeltaRange("muon");
+  const double E5gen = p5rec.E() + myTF->GetDeltaMin("muon") + p5DeltaRange * Xarg[6];
+  p5.SetE(E5gen);
+  if(p5DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("muon", p5rec.E(), E5gen) * p5DeltaRange;
+
+  TLorentzVector p6 = p6rec;
+  const double p6DeltaRange = myTF->GetDeltaRange("jet");
+  const double E6gen = p6rec.E() + myTF->GetDeltaMin("jet") + p6DeltaRange * Xarg[7];
+  p6.SetE(E6gen);
+  if(p6DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("jet", p6rec.E(), E6gen) * p6DeltaRange;
+
+  //cout << "Final TF = " << TFValue << endl;
+
+
+  // We flatten the Breit-Wigners by doing a change of variable for each resonance separately
+  // s = M G tan(y) + M^2
+  // jac = M G / cos^2(y)
+  // ==> BW(s(y))*jac(y) is flat in the variable y, as BW(s) = 1/((s-M^2)^2 - (GM)^2)
+  // Where y = -arctan(M/G) + (pi/2+arctan(M/G))*x_foam (x_foam between 0 and 1 => s between 0 and infinity)
+
+  const double range1 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
+  const double y1 = - TMath::ATan(M_W/G_W) + range1 * Xarg[0];
+  const double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
+
+  //cout << "y1=" << y1 << ", m13=" << TMath::Sqrt(s13) << endl;
+
+  const double range2 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
+  const double y2 = - TMath::ATan(M_T/G_T) + range2 * Xarg[1];
+  const double s134 = M_T * G_T * TMath::Tan(y2) + pow(M_T,2.);
+
+  //cout << "y2=" << y2 << ", m134=" << TMath::Sqrt(s134) << endl;
+
+  const double range3 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
+  const double y3 = - TMath::ATan(M_W/G_W) + range3 * Xarg[2];
+  const double s25 = M_W * G_W * TMath::Tan(y3) + pow(M_W,2.);
+
+  //cout << "y3=" << y3 << ", m25=" << TMath::Sqrt(s25) << endl;
+
+  const double range4 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
+  const double y4 = - TMath::ATan(M_T/G_T) + range4 * Xarg[3];
+  const double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
+
+  //cout << "y4=" << y4 << ", m256=" << TMath::Sqrt(s256) << endl;
+  
+  double flatterJac = range1 * range2 * range3 * range4;
+  flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
+  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);
+
+  if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M()){
+    //cout << "Masses too small!" << endl;
+    mycount++;
+    return 0;
+  }
+
+  //cout << "weight = " << *weight << endl;
+  
+  std::vector<TLorentzVector> p1vec, p2vec;
+
+  ComputeTransformD(s13, s134, s25, s256,
+                    p3, p4, p5, p6, Met,
+                    p1vec, p2vec);
+
+  int countSol = 0;
+
+  for(unsigned short i = 0; i < p1vec.size(); ++i){
+
+    const TLorentzVector p1 = p1vec.at(i);
+    const TLorentzVector p2 = p2vec.at(i);
 
     const TLorentzVector p13 = p1 + p3;
     const TLorentzVector p134 = p1 + p3 + p4;
     const TLorentzVector p25 = p2 + p5;
     const TLorentzVector p256 = p2 + p5 + p6;
 
-    /*myWeight->hst_We->Fill(p13.M());
-    myWeight->hst_Wm->Fill(p25.M());
-    myWeight->hst_t->Fill(p134.M());
-    myWeight->hst_tbar->Fill(p256.M());*/
     /*cout << "Solution " << i << ":" << endl;
     cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
     cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
@@ -682,8 +801,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     const double x1 = TMath::Abs(q1Pz/(SQRT_S/2.));
     const double x2 = TMath::Abs(q2Pz/(SQRT_S/2.));
 
-    const double pdf1_1 = myWeight->ComputePdf(21, x1, pow(M_T,2));
-    const double pdf1_2 = myWeight->ComputePdf(21, x2, pow(M_T,2));
+    const double pdf1_1 = ComputePdf(21, x1, pow(M_T,2));
+    const double pdf1_2 = ComputePdf(21, x2, pow(M_T,2));
   
     // Compute flux factor 1/(2*x1*x2*s)
     const double PhaseSpaceIn = 1.0 / ( 2. * x1 * x2 * pow(SQRT_S,2)); 
@@ -716,25 +835,25 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     p[7][0] = p6.E(); p[7][1] = p6.Px(); p[7][2] = p6.Py(); p[7][3] = p6.Pz();
 
     // Set momenta for this event
-    myWeight->setProcessMomenta(p);
+    setProcessMomenta(p);
 
     // Evaluate matrix element
-    myWeight->computeMatrixElements();
-    const double* const matrix_elements1 = myWeight->getMatrixElements();
+    computeMatrixElements();
+    const double* const matrix_elements1 = getMatrixElements();
     
     // free up memory
     for(unsigned int j = 0; j < p.size(); ++j){
       delete [] p.at(j); p.at(j) = NULL;
     }
 
-    const double thisSolResult = PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac * flatterJac;
-    *Value += thisSolResult; 
+    const double thisSolResult = PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac * flatterJac * TFValue;
+    Value += thisSolResult; 
     
-    // Check whether the next solutions for (E1,E2) are the same => don't redo all this!
+    // Check whether the next solutions for the neutrinos are the same => don't redo all this!
     int countEqualSol = 1;
-    for(unsigned int j = i+1; j<E1.size(); j++){
-      if(e1 == E1.at(j) && e2 == E2.at(j)){
-        *Value += thisSolResult;
+    for(unsigned int j = i+1; j<p1vec.size(); j++){
+      if(p1 == p1vec.at(j) && p2 == p2vec.at(j)){
+        Value += thisSolResult;
         countEqualSol++;
       }
     }
@@ -746,14 +865,13 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     i += countEqualSol - 1;
     countSol += countEqualSol;
     
-    myEvent->GetTTbar()->Fill(tot.M(), *weight * (double)countEqualSol * thisSolResult);
+    //myEvent->GetTTbar()->Fill(tot.M(), *weight * (double)countEqualSol * thisSolResult);
   }
-  //myWeight->fillCountSol(countSol);
 
-  if(*Value == 0.){
+  if(Value == 0.){
     mycount++;
     //cout << "Zero!" << endl;
-    return 0;
+    //return 0;
   }
 
   // ### FOR NWA
@@ -761,23 +879,22 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 
   //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 
-  return 0;
+  return Value;
 }
 
 
 
 int main(int argc, char *argv[])
 {
-  TString inputFile(argv[1]);
-  TString outputFile(argv[2]);
-  int start_evt = atoi(argv[3]);
-  int end_evt = atoi(argv[4]);
-
-  //gSystem->Load("libDelphes");
+  string inputFile(argv[1]);
+  string outputFile(argv[2]);
+  string fileTF(argv[3]);
+  int start_evt = atoi(argv[4]);
+  int end_evt = atoi(argv[5]);
 
   // Create chain of root trees
   TChain chain("Delphes");
-  chain.Add(inputFile);
+  chain.Add(inputFile.c_str());
 
   // Get pointers to branches used in this analysis
   TClonesArray *branchGen = NULL;
@@ -785,7 +902,7 @@ int main(int argc, char *argv[])
 
   cout << "Entries:" << chain.GetEntries() << endl;
 
-  TFile* outFile = new TFile(outputFile, "RECREATE");
+  TFile* outFile = new TFile(outputFile.c_str(), "RECREATE");
   TTree* outTree = chain.CloneTree(0);
 
   double Weight_TT_cpp, Weight_TT_Error_cpp;
@@ -796,30 +913,13 @@ int main(int argc, char *argv[])
   outTree->Branch("Weighted_TT_cpp", &Weighted_TT_cpp);
   outTree->Branch("Weight_TT_cpp_time", &time);
 
-  //ofstream fout(outputFile);
-
-  // Full weights
-  //double madweight1[10] = {1.58495292058e-21, 2.09681384879e-21, 4.34399623629e-22, 1.68163897955e-22, 3.20350498956e-22, 5.22232034307e-22, 6.04738375743e-21, 9.55643564854e-22, 8.12425265344e-22, 5.81210532053e-23};
-  //double madweight2[10] = {1.02514966131e-21, 1.45375719248e-21, 1.65080839221e-22, 1.55653414654e-24, 5.60531044001e-25, 1., 9.70526105314e-24, 3.89103636371e-22, 6.38206925825e-23, 9.37189585544e-26};
-  /*double madweight1[10] = {1.48990458909e-21,2.00433822978e-21,4.08998078881e-22,1.56339237714e-22,2.98606743727e-22,4.79498317117e-22,5.63645701583e-21,8.99177777775e-22,7.68316733666e-22,5.42606461617e-23};
-  double madweight1Err[10] = {8.63813589113e-24,1.08426062115e-23,2.5750146827e-24,7.0506407196e-25,1.10554655068e-24,2.31140842678e-24,2.71677566322e-23,4.8290429288e-24,1.69718762833e-24,2.66346844676e-25};
-  double madweight2[10] = {9.62646303545e-22,1.38143123163e-21,1.54526017444e-22,1.45628835295e-24,6.80263123625e-25,0.,1.07797730384e-23,3.61278172744e-22,6.19087950579e-23,7.20276231557e-26};
-  double madweight2Err[10] = {2.96180414077e-24,4.8856162625e-24,1.0218999515e-24,1.29754825587e-25,2.72733072519e-25,0.,4.03010515215e-24,4.29592188061e-24,1.67765665953e-24,8.06569780018e-27};*/
-
-  // NWA weights
-  //double madweight1[10] = {1.26069381322e-21, 2.85437676736e-21, 4.8136572269e-22, 1., 3.99894656854e-22, 5.7603822256e-22, 6.99323258475e-21, 1.0892124248e-21, 8.28291668972e-22, 1.};
-  //double madweight2[10] = {1.46272073513e-21, 1.51733772927e-21, 1.61193875253e-22, 1., 1., 1., 1., 1., 1., 1.};
-  // NWA weights, first sol
-  //double madweight1[3] = {8.93501179418e-22, 7.42359826601e-22, 1.49577468649e-22};
-  //double madweight2[3] = {1.04113131882e-23, 7.04643552065e-22, 4.3214935529e-23};
-  // NWA weights, first sol, ME=1
-  //double madweight1[3] = {1.9968889994e-17, 1.10734832869e-17, 2.17966664756e-18};
-  //double madweight2[3] = {1.2718723458e-19, 2.38734853175e-17, 6.27800021816e-19};
-
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
   
-  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1");
+  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1", fileTF);
+  myWeight->AddTF("electron", "Binned_Egen_DeltaE_Norm_ele");
+  myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
+  myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
   TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", BINNING, START, STOP);
 
@@ -883,110 +983,20 @@ int main(int argc, char *argv[])
       count_perm = permutation;
     
       double weight = 0;
+      double error = 0;
 
-      /*vector<double> nbr_points;
-      vector<double> wgts;
-      vector<double> wgtsErr;
-      vector<double> wgtsErrX;
-      double max_wgt = 0.;
-      double min_wgt = 1.;*/
+      if(permutation == 1)
+        myWeight->SetEvent(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met);
+      if(permutation == 2)
+        myWeight->SetEvent(gen_ep, gen_mum, gen_bbar, gen_b, gen_Met);
 
+      weight = myWeight->ComputeWeight(error)/2.; 
 
-      for(int k = 1; k <= 51; k+=5){
-        /*int nCells = k*10;
-        int nSampl = 100;
-        int nPoints = 50000;*/
-        /*int nCells = k*40;
-        int nSampl = 200;
-        int nPoints = 50000;*/
-        /*int nCells = 750;
-        int nSampl = 50;
-        int nPoints = 50000;*/
-
-        double error = 0;
-
-        if(permutation == 1)
-          myWeight->SetEvent(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met);
-        if(permutation == 2)
-          myWeight->SetEvent(gen_ep, gen_mum, gen_bbar, gen_b, gen_Met);
-
-        weight = myWeight->ComputeWeight(error)/2.; 
-
-        Weight_TT_cpp += weight;
-        Weight_TT_Error_cpp += pow(error/2,2.);
+      Weight_TT_cpp += weight;
+      Weight_TT_Error_cpp += pow(error/2,2.);
         
-        /*nbr_points.push_back(nCells);
-        //nbr_points.push_back(nPoints);
-        wgts.push_back(weight);
-        wgtsErr.push_back(error);
-        wgtsErrX.push_back(0.);
-        if(weight > max_wgt) max_wgt = weight;
-        if(weight < min_wgt) min_wgt = weight;
-        
-        if(abs(weight-madweight1[entry]) > abs(madweight2[entry]-weight)){
-          double weight3 = madweight2[entry];
-          madweight2[entry] = madweight1[entry];
-          madweight1[entry] = weight3;
-          
-          weight3 = madweight2Err[entry];
-          madweight2Err[entry] = madweight1Err[entry];
-          madweight1Err[entry] = weight3;
-        }
-        
-        if(madweight1[entry] == 0.)
-          fout << entry << "/" << permutation << ", points=" << nPoints << ", cells=" << nCells << ", evts/cell=" << nSampl << ": weight = " << weight << " +- " << error << " (1)" << endl;
-        else{
-          double ratErr;
-          if(weight != 0)
-            ratErr = weight/madweight1[entry] * TMath::Sqrt( pow(error/weight,2.) + pow(madweight1Err[entry]/madweight1[entry],2.) );
-          else
-            ratErr = 0;
-          fout << entry << "/" << permutation << ", points=" << nPoints << ", cells=" << nCells << ", evts/cell=" << nSampl << ": weight = " << weight << " +- " << error << " (" << weight / (double) madweight1[entry] << " +- " << ratErr << ")" << endl;
-        }*/
-
-        break;
-
-      }
-
-      /*double mwX[2] = {nbr_points.at(0), nbr_points.at(nbr_points.size()-1)};
-      double mwErrX[2] = {0.,0.};
-      double correct = madweight1[entry];
-      double correctErr = madweight1Err[entry];
-      if(abs(correct-wgts.at(wgts.size()-1)) > abs(madweight2[entry]-wgts.at(wgts.size()-1))){
-        correct = madweight2[entry];
-        correctErr = madweight2Err[entry];///
-      }
-      double madwgts[2] = {correct, correct};
-      double madwgtsErr[2] = {correctErr, correctErr};
-      if(correct < min_wgt)
-        min_wgt = correct;
-      if(correct > max_wgt)
-        max_wgt = correct;
-      
-      TGraphErrors* wgt_vs_points = new TGraphErrors(wgts.size(), &nbr_points[0], &wgts[0], &wgtsErrX[0], &wgtsErr[0]);
-      TGraphErrors* madwgt_vs_points = new TGraphErrors(2, mwX, madwgts, mwErrX, madwgtsErr);
-      TCanvas* c = new TCanvas("c","Canvas for plotting",600,600);
-      c->cd();
-      wgt_vs_points->Draw("AC*");
-      wgt_vs_points->GetHistogram()->SetMaximum(max_wgt+wgtsErr[0]);
-      wgt_vs_points->GetHistogram()->SetMinimum(min_wgt-wgtsErr[0]);
-      wgt_vs_points->SetMarkerColor(kRed);
-      wgt_vs_points->SetLineColor(kRed);
-      wgt_vs_points->SetMarkerStyle(21);
-      madwgt_vs_points->Draw("CP3");
-      madwgt_vs_points->SetMarkerColor(kBlue);
-      madwgt_vs_points->SetLineColor(kBlue);
-      madwgt_vs_points->SetFillColor(kBlue);
-      madwgt_vs_points->SetFillStyle(3005);
-      //c->Print(TString("plots/test3_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
-      c->Print(TString("plots/wgt_vs_cells_50000p_500c_100s_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
-      //c->Print(TString("plots/wgt_vs_points_102000p_5100c_50s_")+SSTR(entry)+"_"+SSTR(permutation)+".png");
-      delete wgt_vs_points; wgt_vs_points = 0;
-      delete madwgt_vs_points; madwgt_vs_points = 0;
-      delete c;*/
-    
-    //break;
     }
+
     time = chrono.CpuTime();
 
     cout << "CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << endl;
@@ -997,14 +1007,13 @@ int main(int argc, char *argv[])
     outTree->Fill();
 
     count_wgt++;
-    //fout << endl;
-    //break;
   }
 
-  truth_TTbar->Scale(1./truth_TTbar->Integral());
+  /*truth_TTbar->Scale(1./truth_TTbar->Integral());
   truth_TTbar->Write();
-  myWeight->WriteHist();
+  myWeight->WriteHist();*/
 
+  outFile->cd();
   outTree->Write();
   delete myWeight;
   delete outFile; outFile = NULL;
