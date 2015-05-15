@@ -349,9 +349,11 @@ double MEWeight::ComputeWeight(double &error){
 
   //myEvent->writeHists();
 
-  myEvent->GetTTbar()->SetEntries(1);
-  if(myEvent->GetTTbar()->Integral())
-    hst_TTbar->Add(myEvent->GetTTbar(), 1./myEvent->GetTTbar()->Integral());
+  if(myEvent->GetTTbar()->Integral()){
+    myEvent->GetTTbar()->Scale(1./myEvent->GetTTbar()->Integral());
+    myEvent->GetTTbar()->SetEntries(1);
+    hst_TTbar->Add(myEvent->GetTTbar());
+  }
   
   if(std::isnan(error))
   error = 0.;
