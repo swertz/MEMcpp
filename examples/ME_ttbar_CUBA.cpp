@@ -325,10 +325,10 @@ double MEWeight::ComputeWeight(double &error){
     0.,                     // (double) requested absolute accuracy |
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
-    5000,                  // (int) minimum number of integrand evaluations
+    0,                  // (int) minimum number of integrand evaluations
     50000,                  // (int) maximum number of integrand evaluations (approx.!)
-    5000,                  // (int) number of integrand evaluations per interations (to start)
-    0,                      // (int) increase in number of integrand evaluations per interations
+    10000,                  // (int) number of integrand evaluations per interations (to start)
+    30000,                      // (int) increase in number of integrand evaluations per interations
     1000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
@@ -989,10 +989,11 @@ int main(int argc, char *argv[])
     }
     time = chrono.CpuTime();
 
-    cout << "CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << endl;
-    
     Weight_TT_Error_cpp = TMath::Sqrt(Weight_TT_Error_cpp);
     Weighted_TT_cpp = true;
+
+    cout << "====> Event " << entry << ": weight = " << Weight_TT_cpp << " +- " << Weight_TT_Error_cpp << endl;
+    cout << "      CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << endl << endl;
 
     outTree->Fill();
 
