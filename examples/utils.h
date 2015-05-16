@@ -7,6 +7,23 @@
 #define CB(x) (x*x*x)
 #define QU(x) (x*x*x*x)
 
+// Set option flags for CUBA integrator
+// 
+// smoothing only used by Suave
+// smoothing and takeOnlyGridFromFile only used by Vegas
+//
+// verbosity = 0-3
+// subregion true = only last set of samples is used for final evaluation of integral
+// smoothing true = smoothe importance function
+// retainStateFile true => retain state file when integration ends
+// takeOnlyGridFromFile false => full state taken from file (if present), true => only grid is taken (e.g. to use it for another integrand)
+// level determines random-number generator:
+//  seed = 0 => Sobol quasi-random
+//  seed != 0 => level is used:
+//    level = 0 => Mersenne Twister pseudo-random
+//    level != 0 => Ranlux pseudo-random, level = determines period of generator
+unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainStateFile = false, unsigned int level = 0, bool smoothing = false, bool takeOnlyGridFromFile = true);
+
 template<typename T> void swap(T &a, T &b);
 template<typename T> T sign(const T x);
 

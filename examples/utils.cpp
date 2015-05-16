@@ -7,6 +7,31 @@
 
 using namespace std;
 
+unsigned int setFlags(char verbosity, bool subregion, bool retainStateFile, unsigned int level, bool smoothing, bool takeOnlyGridFromFile){
+  unsigned int flags = 0;
+
+  unsigned int opt_subregion = 0x04; // bit 2 (=4)
+  unsigned int opt_smoothing = 0x08; // bit 3 (=8)
+  unsigned int opt_retainStateFile = 0x10; // bit 4 (=16)
+  unsigned int opt_takeOnlyGridFromFile = 0x20; // bit 5 (=32)
+
+  level <<= 8; // bits 8-31
+  flags |= level | verbosity; // verbosity: bits 0-1
+  if(subregion) flags |= opt_subregion;
+  if(!smoothing) flags |= opt_smoothing; // careful true-false inverted
+  if(retainStateFile) flags |= opt_retainStateFile;
+  if(takeOnlyGridFromFile) flags |= opt_takeOnlyGridFromFile;
+
+  cout << "Integrator flags = ";
+  for(int i=31; i>=0; --i){
+    bool bit = (flags >> i) & 1;
+    cout << bit;
+  }
+  cout << endl;
+
+  return flags;
+}
+
 template<typename T> void swap(T &a, T &b){
   T temp = a;
   a = b;
@@ -26,7 +51,7 @@ double cosXpm2PI3(const double x, const double pm){
   return -0.5*( cos(x) + pm * sin(x) * sqrt(3.) );
 }
 
-bool solveQuadratic(const double a, const double b, const double c, vector<double>& roots, bool verbose){
+bool solveQuadratic(const double a, const double b, const double c, std::vector<double>& roots, bool verbose){
 
   if(!a){
     if(!b){
@@ -64,7 +89,7 @@ bool solveQuadratic(const double a, const double b, const double c, vector<doubl
   }
 }
 
-bool solveCubic(const double a, const double b, const double c, const double d, vector<double>& roots, bool verbose){
+bool solveCubic(const double a, const double b, const double c, const double d, std::vector<double>& roots, bool verbose){
 
   if(a == 0)
     return solveQuadratic(b, c, d, roots, verbose);
@@ -109,7 +134,7 @@ bool solveCubic(const double a, const double b, const double c, const double d, 
   return true;
 }
 
-bool solveQuartic(const double a, const double b, const double c, const double d, const double e, vector<double>& roots, bool verbose){
+bool solveQuartic(const double a, const double b, const double c, const double d, const double e, std::vector<double>& roots, bool verbose){
   
   if(!a)
     return solveCubic(b, c, d, e, roots, verbose);
@@ -125,7 +150,7 @@ bool solveQuartic(const double a, const double b, const double c, const double d
     const double cn = CB(0.5*b/a) - 0.5*b*c/SQ(a) + d/a;
     const double dn = -3.*QU(0.25*b/a) + e/a - 0.25*b*d/SQ(a) + c*SQ(b/4.)/CB(a);
 
-    vector<double> res;
+    std::vector<double> res;
     solveCubic(1., 2.*bn, SQ(bn) - 4.*dn, -SQ(cn), res, verbose);
     short pChoice = -1;
 
@@ -168,7 +193,7 @@ bool solveQuartic(const double a, const double b, const double c, const double d
 
 bool solve2Quads(const double a20, const double a02, const double a11, const double a10, const double a01, const double a00,
                 const double b20, const double b02, const double b11, const double b10, const double b01, const double b00,
-                vector<double>& E1, vector<double>& E2,
+                std::vector<double>& E1, std::vector<double>& E2,
                 bool verbose){
 
   // The procedure used in this function relies on a20 != 0 or b20 != 0
@@ -215,7 +240,7 @@ bool solve2Quads(const double a20, const double a02, const double a11, const dou
     }else if(alpha*SQ(e2) + delta*e2 + omega == 0.){
       // Up to two solutions for e1
       
-      vector<double> e1;
+      std::vector<double> e1;
       
       if( !solveQuadratic(a20, a11*e2 + a10, a02*SQ(e2) + a01*e2 + a00, e1, verbose) ){
         
@@ -327,7 +352,7 @@ bool solve2QuadsDeg(const double a11, const double a10, const double a01, const 
 
 bool solve2Linear(const double a10, const double a01, const double a00,
                   const double b10, const double b01, const double b00,
-                  vector<double>& E1, vector<double>& E2, bool verbose){
+                  std::vector<double>& E1, std::vector<double>& E2, bool verbose){
   
   const double det = a10*b01 - b10*a01;
 
