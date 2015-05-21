@@ -99,7 +99,8 @@ unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainSta
 class MEWeight{
 	public:
 
-	MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
+  MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met, double q1gen, double q2gen);
+	//MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
 	inline double ComputePdf(const int pid, const double x, const double q2);
 
 	inline TLorentzVector GetP3(void) const { return p3; }
@@ -112,6 +113,8 @@ class MEWeight{
 	inline void computeMatrixElements(){ process.sigmaKin(); }
 	inline const double* const getMatrixElements() const { return process.getMatrixElements(); }
 
+  double q1, q2;
+
 	private:
 
 	TLorentzVector p3, p4, p5, p6, Met;
@@ -120,12 +123,15 @@ class MEWeight{
 	PDF *pdf;
 };
 
-MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
+MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met, double q1gen, double q2gen){
 	p3 = ep;
 	p5 = mum;
 	p4 = b;
 	p6 = bbar;
 	Met = met;
+
+  q1 = q1gen;
+  q2 = q2gen;
 
 	process.initProc(paramCardPath);
 	pdf = mkPDF("cteq6l1", 0);
@@ -185,6 +191,9 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 
 	MEWeight* myWeight = (MEWeight*) inputs;
 
+	TLorentzVector p1 = myWeight->GetP4();
+	TLorentzVector p2 = myWeight->GetP6();
+
 	TLorentzVector p3 = myWeight->GetP3();
 	TLorentzVector p4 = myWeight->GetP5();
 	TLorentzVector Met = myWeight->GetMet();
@@ -206,20 +215,26 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 
 	const double range1 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
 	const double y1 = - TMath::ATan(M_W/G_W) + range1 * Xarg[0];
-	const double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
+	//const double s13 = M_W * G_W * TMath::Tan(y1) + pow(M_W,2.);
+	//const double s13 = SQ(72.2714);
+	const double s13 = SQ((p1+p3).M());
 
 	//cout << "y1=" << y1 << ", m13=" << TMath::Sqrt(s13) << endl;
 
 	const double range2 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
 	const double y2 = - TMath::ATan(M_W/G_W) + range2 * Xarg[1];
-	const double s24 = M_W * G_W * TMath::Tan(y2) + pow(M_W,2.);
+	//const double s24 = M_W * G_W * TMath::Tan(y2) + pow(M_W,2.);
+	//const double s24 = SQ(77.8949);
+	const double s24 = SQ((p2+p4).M());
 
 
 	//const double q1 = Xarg[2]/50.0;
 	//const double q2 = -Xarg[3]/50.0;
 	//
-	const double q1 = 0.0615737;
-	const double q2 = 0.0082855;
+	//const double q1 = 0.0615737;
+	//const double q2 = 0.0082855;
+  double q1 = myWeight->q1;
+  double q2 = myWeight->q2;
 
 	//cout << "y2=" << y2 << ", M24=" << TMath::Sqrt(s24) << endl;
 
@@ -231,36 +246,43 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 
 
 	// pb = transverse total momentum of the visible particles
-	const TLorentzVector pb = p3+p4;
+	const TLorentzVector pb = p3+p4+p1+p2;
+	//const TLorentzVector pb = p3+p4;
+	//const TLorentzVector pb = -Met;
 
 	// P2x = a1 E2 + a2 P2y + a3
 	// P2z = b1 E2 + b2 P2y + b3
 
-	const double Qm = SQRT_S*(q1-q2)/2;
-	const double Qp = SQRT_S*(q1+q2)/2;
+	const double Qm = SQRT_S*(q1-q2)/2.;
+	const double Qp = SQRT_S*(q1+q2)/2.;
+  cout << "Etot " << Qp << ", Pztot " << Qm << endl;
 	
-        const double ka = -4*p4.Px()*p3.Pz()+4*p3.Px()+p4.Pz();
-	const double kb = 2*(p3.Pz()*p4.Px()-p3.Px()*p4.Pz());
+	const double kb = 2.*(p3.Pz()*p4.Px()-p3.Px()*p4.Pz());
 
-	const double b1 = -(1/kb) * (2*p4.E()*p3.Px()-2*p3.E()*p4.Px());
-	const double b2 = -(1/kb) * (2*p3.Py()*p4.Px()-2*p3.Px()*p4.Py());
-	const double b3 = -(1/kb) * (pow(p4.M(),2)*p3.Px()-2*p3.E()*pb.E()*p4.Px()+pow(p3.M(),2)*p4.Px()+2*p3.Px()*p4.Px()*pb.Px()+2*p3.Py()*p4.Px()*pb.Py()+2*p3.Pz()*p4.Px()*pb.Pz()-2*p3.Pz()*p4.Px()*Qm+2*p3.E()*p4.Px()*Qp-p4.Px()*s13-p3.Px()*s24);
+	const double b1 = - 2.*(p4.E()*p3.Px()-p3.E()*p4.Px()) / kb;
+	const double b2 = - 2.*(p3.Py()*p4.Px()-p3.Px()*p4.Py()) / kb;
+	const double b3 = - (pow(p4.M(),2.)*p3.Px()-2.*p3.E()*pb.E()*p4.Px()+pow(p3.M(),2.)*p4.Px()+2.*p3.Px()*p4.Px()*pb.Px()+2.*p3.Py()*p4.Px()*pb.Py()+2.*p3.Pz()*p4.Px()*pb.Pz()-2.*p3.Pz()*p4.Px()*Qm+2.*p3.E()*p4.Px()*Qp-p4.Px()*s13-p3.Px()*s24) / kb;
 
-	const double a1 = (1/ka)*(-2*p4.Pz()*(-2*p3.E())-2*p3.Pz()*2*p4.E()) ;
-	const double a2 = (1/ka)*(-4*p3.Py()*p4.Pz()-2*p3.Pz()*(-2*p4.Py()));
-	const double a3 = -pb.Px()+(1/ka)*(-4*p4.Px()*pb.Px()*p3.Pz()-4*p3.Py()*pb.Py()*p4.Pz()-2*p4.Pz()*(-2*p3.E()*(pb.E()-Qp)+pow(p3.M(),2)+2*p3.Pz()*(pb.Pz()-Qm)-s13)-2*p3.Pz()*(pow(p4.M(),2)-s24)) ;
-
-
-	cout << "p2x : -51.7897 , p2y : 23.0622 , p2z : 112.36 , E2 : 125.852" << endl;
-	cout << "p2x : 50.8451 , p2y : -21.9069 , p2z : 46.6542 , E2 : 72.3999" << endl;
+  const double ka = -2.*( p4.Px()*p3.Pz() - p3.Px()+p4.Pz() );
 	
-	const double test = a1*125.852+a2*(23.0622)+a3;
-	const double test2 = b1*125.852+b2*(23.0622)+b3;
-        const double test3 = a1*72.3999+a2*(-21.9069)+a3;
-        const double test4 = b1*72.3999+b2*(-21.9069)+b3;
+  const double a1 = -2.*(p4.Pz()*(p3.E())+p3.Pz()*2.*p4.E()) / ka ;
+	const double a2 = -2.*(p3.Py()*p4.Pz()-p3.Pz()*p4.Py()) / ka;
+	const double a3 = -pb.Px() - (2.*p4.Px()*pb.Px()*p3.Pz()+2.*p3.Py()*pb.Py()*p4.Pz()+p4.Pz()*(-2.*p3.E()*(pb.E()-Qp)+pow(p3.M(),2.)+2.*p3.Pz()*(pb.Pz()-Qm)-s13)+p3.Pz()*(pow(p4.M(),2.)-s24)) / ka ;
 
-	cout << " test p2x : " << test << endl;
-        cout << " test p2z : " << test2 << endl;
+
+	//cout << "p1x : " << p1.Px() << " , p1y : " << p1.Py() << " , p1z : " << p1.Pz() << " , E1 : " << p1.E() << endl;
+	cout << "p2x : " << p2.Px() << " , p2y : " << p2.Py() << " , p2z : " << p2.Pz() << " , E2 : " << p2.E() << endl;
+	//cout << "p2x : 50.8451 , p2y : -21.9069 , p2z : 46.6542 , E2 : 72.3999" << endl;
+	
+	//const double test  = a1*p1.E()+a2*p1.Py()+a3;
+	//const double test2 = b1*p1.E()+b2*p1.Py()+b3;
+
+	const double test3 = a1*p2.E()+a2*p2.Py()+a3;
+	const double test4 = b1*p2.E()+b2*p2.Py()+b3;
+
+	//cout << " test p1x : " << test << endl;
+  //cout << " test p1z : " << test2 << endl << endl;
+
 	cout << " test p2x : " << test3 << endl;
 	cout << " test p2z : " << test4 << endl;
 
@@ -318,8 +340,9 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		P2.SetPxPyPzE(P2X,P2Y.at(i),P2Z,P2E);
 		W = P2+p4;
 
-		cout << "  W24 mass : " << sqrt(s24) << " " <<  W.M();
-		//cout << "W13 mass : " << s13 << " " <<  W.M() << endl;
+		cout << "W24 mass : " << sqrt(s24) << " " <<  W.M() << endl;
+		//W = p1+p3;
+		//cout << "    W13 mass : " << sqrt(s13) << " " <<  W.M() << endl;
 
 
 	}
@@ -470,7 +493,7 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 	return 0;
 }
 
-double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector Met, double *time){
+double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector Met, TLorentzVector nu1, TLorentzVector nu2, double q1, double q2, double *time){
 	
 	/*TH1D *hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
 	TH1D *hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
@@ -482,9 +505,9 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector M
 	TStopwatch chrono;
 	chrono.Start();
 
-	TLorentzVector b, bbar;
+	TLorentzVector b = nu1, bbar = nu2;
 
-	MEWeight myWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
+	MEWeight myWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met, q1, q2);
 
 	int neval, nfail;
 	double mcResult=0, mcError=0, prob=0;
@@ -510,12 +533,12 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector M
 		0.005,					// (double) requested relative accuracy |-> error < max(rel*value,abs)
 		0.,						// (double) requested absolute accuracy |
 		flags,					// (int) various control flags in binary format, see setFlags function
-		8945,						// (int) seed (seed==0 && no control flag => SOBOL; seed!=0 && control flag==0 => Mersenne Twister)
+		0,						// (int) seed (seed==0 && no control flag => SOBOL; seed!=0 && control flag==0 => Mersenne Twister)
 		0,					// (int) minimum number of integrand evaluations
-		500,					// (int) maximum number of integrand evaluations (approx.!)
-		1000,					// (int) number of integrand evaluations per interations (to start)
+		1,					// (int) maximum number of integrand evaluations (approx.!)
+		1,					// (int) number of integrand evaluations per interations (to start)
 		0,						// (int) increase in number of integrand evaluations per interations
-		1000,					// (int) batch size for sampling
+		1,					// (int) batch size for sampling
 		0,						// (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 		"", 					// (char*) name of state file => state can be stored and retrieved for further refinement
 		NULL,					// (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
@@ -672,7 +695,7 @@ int main(int argc, char *argv[])
 		treeReader->ReadEntry(entry);
 		chain.GetEntry(entry);
 
-		TLorentzVector gen_ep, gen_mum, gen_Met, gen_nm, gen_ne;
+		TLorentzVector gen_ep, gen_mum, gen_Met, gen_nm, gen_ne, gen_b, gen_bbar;
 
 		GenParticle *gen;
 
@@ -681,7 +704,7 @@ int main(int argc, char *argv[])
 		for (Int_t i = 0; i < branchGen->GetEntries(); i++){
 			gen = (GenParticle *) branchGen->At(i);
 			//cout << "Status=" << gen->Status << ", PID=" << gen->PID << ", E=" << gen->P4().E() << endl;
-			if (gen->Status == 3){
+			if (gen->Status == 1){
 				if (gen->PID == -11){
 					gen_ep = gen->P4();
 					//count_ep++;
@@ -689,22 +712,40 @@ int main(int argc, char *argv[])
 					gen_mum = gen->P4();
 					//count_mum++;
 				}
-				else if (gen->PID == 12) {gen_Met += gen->P4(); gen_ne = gen->P4();}
-				else if (gen->PID == -14) {gen_Met += gen->P4(); gen_nm = gen->P4();}
-			}
+				else if (gen->PID == 12) {gen_Met += gen->P4();/* gen_ne = gen->P4();*/}
+				else if (gen->PID == -14) {gen_Met += gen->P4();/* gen_nm = gen->P4();*/}
+        if(gen->PID == 5){ gen_b = gen->P4() ; }
+        if(gen->PID == -5){ gen_bbar = gen->P4() ; }
+        
+        if(gen->PID == 24)
+          cout << "W+ mass " << gen->P4().M() << endl;
+        if(gen->PID == -24)
+          cout << "W- mass " << gen->P4().M() << endl;
+      }
 		}
+
+    /*gen_ne.SetPx(-(gen_nm.Px()+gen_ep.Px()+gen_mum.Px()));
+    gen_ne.SetPy(-(gen_nm.Py()+gen_ep.Py()+gen_mum.Py()));
+    gen_Met = gen_ne + gen_nm;*/
+    /*TLorentzVector boost = gen_Met - gen_ep - gen_mum;
+    gen_Met.Boost(-boost.BoostVector());*/
 
 		cout << "p2x : " << gen_ne.Px() << " , p2y : " << gen_ne.Py() << " , p2z : " << gen_ne.Pz() << " , E2 : " << gen_ne.E() << endl;
 		cout << "p2x : " << gen_nm.Px() << " , p2y : " << gen_nm.Py() << " , p2z : " << gen_nm.Pz() << " , E2 : " << gen_nm.E() << endl;
 
-		double Pzext = (gen_Met+gen_ep+gen_mum).Pz();
-		double Eext  = (gen_Met+gen_ep+gen_mum).E();
+		double Pzext = (gen_Met+gen_ep+gen_mum+gen_b+gen_bbar).Pz();
+		double Eext  = (gen_Met+gen_ep+gen_mum+gen_b+gen_bbar).E();
 
-		cout << "pz   : " << (gen_Met+gen_ep+gen_mum).Pz() << endl;
-		cout << "etot : " << (gen_Met+gen_ep+gen_mum).E() << endl;
-		cout << "q1 : " << (Pzext+Eext)/(2*4000) << endl;;
-		cout << "q2 : " << (Pzext-Eext)/(2*4000) << endl;;
-	
+    cout << "Momentum test " << (gen_ep+gen_mum+gen_Met+gen_b+gen_bbar).Px() << endl;
+
+		cout << "pz   : " << (gen_Met+gen_ep+gen_mum+gen_b+gen_bbar).Pz() << endl;
+		cout << "etot : " << (gen_Met+gen_ep+gen_mum+gen_b+gen_bbar).E() << endl;
+    double q1 = (Pzext+Eext)/(2*4000.);
+    double q2 = (-Pzext+Eext)/(2*4000.);
+		cout << "q1 : " << q1 << endl;;
+		cout << "q2 : " << q2 << endl;;
+
+    gen_Met.SetPtEtaPhiM(gen_Met.Pt(), 0., gen_Met.Phi(), 0.);
 
 
 		//if(count_ep != 1 || count_mum != 1)
@@ -752,9 +793,10 @@ int main(int argc, char *argv[])
 				double error = 0;
 
 				if(permutation == 1)
-					weight = ME(&error, gen_ep, gen_mum, gen_Met, &temp_time)/2;
-				if(permutation == 2)
-					weight = ME(&error, gen_ep, gen_mum, gen_Met, &temp_time)/2;
+					weight = ME(&error, gen_ep, gen_mum, gen_Met, gen_b, gen_bbar, q1, q2, &temp_time)/2;
+					//weight = ME(&error, gen_ep, gen_mum, gen_Met, gen_ne, gen_nm, q1, q2, &temp_time)/2;
+				//if(permutation == 2)
+				//	weight = ME(&error, gen_ep, gen_mum, gen_Met, &temp_time)/2;
 
 				Weight_TT_cpp += weight;
 				Weight_TT_Error_cpp += pow(error/2,2.);
