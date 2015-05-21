@@ -42,6 +42,10 @@
 
 #define SQRT_S 13000
 
+#define BINNING 1750
+#define START 250
+#define STOP 2000
+
 #define SSTR( x ) dynamic_cast< std::ostringstream & > \
         ( std::ostringstream() << std::dec << x ).str()
 
@@ -49,6 +53,8 @@ using namespace LHAPDF;
 using namespace std;
 
 int mycount = 0, count_wgt = 0, count_perm=1;
+
+int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight);
 
 unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainStateFile = false, unsigned int level = 0, bool smoothing = false, bool takeOnlyGridFromFile = true){
   // Set option flags for CUBA integrator
@@ -92,12 +98,14 @@ unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainSta
   return flags;
 }
 
-class MEWeight{
+
+class MEEvent{
   public:
 
-  MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
-  ~MEWeight();
-  inline double computePdf(const int pid, const double x, const double q2);
+  MEEvent();
+  //MEEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
+  void SetVectors(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
+  ~MEEvent();
 
   inline TLorentzVector GetP3(void) const { return p3; }
   inline TLorentzVector GetP4(void) const { return p4; }
@@ -105,43 +113,34 @@ class MEWeight{
   inline TLorentzVector GetP6(void) const { return p6; }
   inline TLorentzVector GetMet(void) const { return Met; }
 
-  inline void setProcessMomenta(vector<double*> &p){ process.setMomenta(p); }
-  inline void computeMatrixElements(){ process.sigmaKin(); }
-  inline const double* const getMatrixElements() const { return process.getMatrixElements(); }
-
   void writeHists(void);
-  void fillWm(double value);
-  void fillWe(double value);
-  void fillT(double value);
-  void fillTbar(double value);
-  void fillTTbar(double value);
-  void fillCountSol(int value);
+
+  TH1D* GetTTbar();
   
   private:
 
   TLorentzVector p3, p4, p5, p6, Met;
 
-  CPPProcess process;
-  PDF *pdf;
-  
-  TH1D *hst_Wm;
+  /*TH1D *hst_Wm;
   TH1D *hst_We;
   TH1D *hst_t;
-  TH1D *hst_tbar;
+  TH1D *hst_tbar;*/
   TH1D *hst_TTbar;
-  TH1I *hst_countSol;
+  //TH1I *hst_countSol;
 };
 
-MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
+MEEvent::MEEvent(){
+  hst_TTbar = new TH1D("test_TTbar", "test_TTbar", BINNING, START, STOP); 
+  //hst_TTbar->Sumw2();
+}
+
+/*MEEvent::MEEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
   p3 = ep;
   p5 = mum;
   p4 = b;
   p6 = bbar;
   Met = met;
 
-  process.initProc(paramCardPath);
-  pdf = mkPDF("cteq6l1", 0);
-  
   hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
   hst_Wm->SetBit(TH1::kCanRebin);
   hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
@@ -150,53 +149,37 @@ MEWeight::MEWeight(const string paramCardPath, const TLorentzVector ep, const TL
   hst_t->SetBit(TH1::kCanRebin);
   hst_tbar = new TH1D("test_tbar", "test_1D", 100,100,250);
   hst_tbar->SetBit(TH1::kCanRebin);
-  hst_TTbar = new TH1D("test_TTbar", "test_TTbar", 100,0,1000);
-  hst_TTbar->SetBit(TH1::kCanRebin);
-  hst_countSol = new TH1I("test_countsol", "test_1D", 5,0,5);
+  hst_TTbar = new TH1D("test_TTbar", "test_TTbar", 1000, 300, 1500);
+  //hst_TTbar->SetBit(TH1::kCanRebin);
+  hst_TTbar->Sumw2();
+  //hst_countSol = new TH1I("test_countsol", "test_1D", 5,0,5);
+}*/
+
+void MEEvent::SetVectors(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
+  p3 = ep;
+  p5 = mum;
+  p4 = b;
+  p6 = bbar;
+  Met = met;
+
+  if(hst_TTbar)
+    hst_TTbar->Reset();
 }
 
-MEWeight::~MEWeight(){
-  delete hst_Wm; hst_Wm = NULL;
+MEEvent::~MEEvent(){
+  /*delete hst_Wm; hst_Wm = NULL;
   delete hst_We; hst_We = NULL;
   delete hst_t; hst_t = NULL;
-  delete hst_tbar; hst_tbar = NULL;
+  delete hst_tbar; hst_tbar = NULL;*/
   delete hst_TTbar; hst_TTbar = NULL;
-  delete hst_countSol; hst_countSol = NULL;
+  //delete hst_countSol; hst_countSol = NULL;
 }
 
-void MEWeight::fillCountSol(int value){
-  hst_countSol->Fill(value);
+TH1D* MEEvent::GetTTbar(){
+  return hst_TTbar;
 }
 
-void MEWeight::fillWm(double value){
-  hst_Wm->Fill(value);
-}
-
-void MEWeight::fillWe(double value){
-  hst_We->Fill(value);
-}
-
-void MEWeight::fillT(double value){
-  hst_t->Fill(value);
-}
-
-void MEWeight::fillTbar(double value){
-  hst_tbar->Fill(value);
-}
-
-void MEWeight::fillTTbar(double value){
-  hst_TTbar->Fill(value);
-}
-
-double MEWeight::computePdf(const int pid, const double x, const double q2){
-  // return f(pid,x,q2)
-  if(x <= 0 || x >= 1)
-    return 0.;
-  else
-    return pdf->xfxQ2(pid, x, q2)/x;
-}
-
-void MEWeight::writeHists(void){
+void MEEvent::writeHists(void){
   /*TCanvas *c = new TCanvas(TString("We")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
   c->cd();
   hst_We->Draw();
@@ -233,7 +216,159 @@ void MEWeight::writeHists(void){
   c->Print(TString("plots/")+SSTR(count_wgt)+"_"+SSTR(count_perm)+"_countSol.png");
   delete c; c = 0;*/
 
-  hst_TTbar->Write(("ttbar_" + SSTR(count_wgt) + "_" + SSTR(count_perm)).c_str());
+  TCanvas *c = new TCanvas(TString("Mttbar")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+  c->cd();
+  hst_TTbar->Draw();
+  c->Write();
+  c->Print(TString("plots/Mttbar_")+SSTR(count_wgt)+"_"+SSTR(count_perm)+".png");
+  delete c; c = 0;
+}
+
+class MEWeight{
+  public:
+
+  inline double ComputePdf(const int pid, const double x, const double q2);
+  inline void setProcessMomenta(vector<double*> &p){ process.setMomenta(p); }
+  inline void computeMatrixElements(){ process.sigmaKin(); }
+  inline const double* const getMatrixElements() const { return process.getMatrixElements(); }
+  double ComputeWeight(double &error);
+  MEEvent* GetEvent();
+  void SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
+
+  void WriteHist();
+
+  MEWeight(const string paramCardPath, const string pdfName);
+  ~MEWeight();
+
+  private:
+
+  TH1D* hst_TTbar;
+
+  CPPProcess process;
+  PDF* pdf;
+  MEEvent* myEvent;
+}; 
+  
+MEWeight::MEWeight(const string paramCardPath, const string pdfName){
+
+  cout << "Initizialing Matrix Element computation with:" << endl;
+  cout << "Parameter card " << paramCardPath << endl;
+  cout << "PDF " << pdfName << endl;
+
+  process.initProc(paramCardPath);
+  pdf = mkPDF(pdfName, 0);
+  myEvent = new MEEvent();
+
+  hst_TTbar = new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP);
+  //hst_TTbar->Sumw2();
+}
+
+double MEWeight::ComputePdf(const int pid, const double x, const double q2){
+  // return f(pid,x,q2)
+  if(x <= 0 || x >= 1 || q2 <= 0){
+    cout << "WARNING: PDF x or Q^2 value out of bounds!" << endl;
+    return 0.;
+  }else{
+    return pdf->xfxQ2(pid, x, q2)/x;
+  }
+}
+
+MEEvent* MEWeight::GetEvent(){
+  return myEvent;
+}
+
+void MEWeight::SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
+  myEvent->SetVectors(ep, mum, b, bbar, met);
+}
+
+void MEWeight::WriteHist(){
+
+  hst_TTbar->Scale(1./hst_TTbar->Integral());
+
+  /*TCanvas *c = new TCanvas("DMEM_TTbar", "Canvas for plotting", 600, 600);
+  c->cd();
+  hst_TTbar->Draw();*/
+  //c->Write();
+  hst_TTbar->Write();
+  //c->Print("plots/DMEM_ttbar.png", "png");
+  //delete c; c = 0;
+
+}
+
+double MEWeight::ComputeWeight(double &error){
+  
+  cout << "Initializing integration..." << endl;
+
+  int neval, nfail;
+  double mcResult=0, prob=0;
+  
+  char verbosity = 0; // 0-3
+  bool subregion = false; // true = only last set of samples is used for final evaluation of integral
+  bool smoothing = false;
+  bool retainStateFile = false; // false => delete state file when integration ends
+  bool takeOnlyGridFromFile = true; // false => full state taken from file (if present), true => only grid is taken (e.g. to use it for another integrand)
+  unsigned int level = 0; 
+
+  unsigned int flags = setFlags(verbosity, subregion, retainStateFile, level, smoothing, takeOnlyGridFromFile);
+
+  cout << "Starting integration..." << endl;
+
+  cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  Vegas(
+    4,                      // (int) dimensions of the integrated volume
+    1,                      // (int) dimensions of the integrand
+    (integrand_t) MEFunct,  // (integrand_t) integrand (cast to integrand_t)
+    //(integrand_t) BWTest, // (integrand_t) integrand (cast to integrand_t)
+    (void*) this,           // (void*) pointer to additional arguments passed to integrand
+    1,                      // (int) maximum number of points given the integrand in each invocation (=> SIMD) ==> PS points = vector of sets of points (x[ndim][nvec]), integrand returns vector of vector values (f[ncomp][nvec])
+    0.005,                  // (double) requested relative accuracy |-> error < max(rel*value,abs)
+    0.,                     // (double) requested absolute accuracy |
+    flags,                  // (int) various control flags in binary format, see setFlags function
+    0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
+    5000,                  // (int) minimum number of integrand evaluations
+    50000,                  // (int) maximum number of integrand evaluations (approx.!)
+    5000,                  // (int) number of integrand evaluations per interations (to start)
+    0,                      // (int) increase in number of integrand evaluations per interations
+    1000,                   // (int) batch size for sampling
+    0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
+    "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
+    NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
+    &neval,                 // (int*) actual number of evaluations done
+    &nfail,                 // 0=desired accuracy was reached; -1=dimensions out of range; >0=accuracy was not reached
+    &mcResult,              // (double*) integration result ([ncomp])
+    &error,                 // (double*) integration error ([ncomp])
+    &prob                   // (double*) Chi-square p-value that error is not reliable (ie should be <0.95) ([ncomp])
+  );
+  
+  cout << "Integration done." << endl;
+
+  cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
+  mycount = 0;
+
+  cout << " mcResult= " << mcResult << " +- " << error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl;
+
+  //myEvent->writeHists();
+
+  if(myEvent->GetTTbar()->Integral()){
+    myEvent->GetTTbar()->Scale(1./myEvent->GetTTbar()->Integral());
+    myEvent->GetTTbar()->SetEntries(1);
+    hst_TTbar->Add(myEvent->GetTTbar());
+  }
+  
+  if(std::isnan(error))
+  error = 0.;
+  if(std::isnan(mcResult))
+  mcResult = 0.;
+  return mcResult;
+}
+
+MEWeight::~MEWeight(){
+  cout << "Deleting PDF" << endl;
+  delete pdf; pdf = NULL;
+  cout << "Deleting myEvent" << endl;
+  delete myEvent; myEvent = NULL;
+  cout << "Deleting hst_TTbar" << endl;
+  delete hst_TTbar; hst_TTbar = NULL;
 }
 
 int BWTest(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
@@ -275,18 +410,19 @@ int BWTest(const int *nDim, const double* Xarg, const int *nComp, double *Value,
   return 0;
 }
 
-int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
+int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << endl;
 
   MEWeight* myWeight = (MEWeight*) inputs;
+  MEEvent* myEvent = myWeight->GetEvent();
 
-  TLorentzVector p3 = myWeight->GetP3();
-  TLorentzVector p4 = myWeight->GetP4();
-  TLorentzVector p5 = myWeight->GetP5();
-  TLorentzVector p6 = myWeight->GetP6();
-  TLorentzVector Met = myWeight->GetMet();
+  TLorentzVector p3 = myEvent->GetP3();
+  TLorentzVector p4 = myEvent->GetP4();
+  TLorentzVector p5 = myEvent->GetP5();
+  TLorentzVector p6 = myEvent->GetP6();
+  TLorentzVector Met = myEvent->GetMet();
 
   *Value = 0.;
 
@@ -326,12 +462,18 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
   const double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
 
   //cout << "y4=" << y4 << ", m256=" << TMath::Sqrt(s256) << endl;
+  
+  double flatterJac = range1 * range2 * range3 * range4;
+  flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
+  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);
 
   if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M()){
     //cout << "Masses too small!" << endl;
     mycount++;
     return 0;
   }
+
+  //cout << "weight = " << *weight << endl;
 
   // #### FOR NWA
   /*s13 = pow(M_W,2.);
@@ -505,8 +647,6 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
   
     const TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
     
-    //myWeight->fillTTbar(tot.M());
-
     const double ETot = tot.E();
     const double PzTot = tot.Pz();
 
@@ -542,8 +682,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     const double x1 = TMath::Abs(q1Pz/(SQRT_S/2.));
     const double x2 = TMath::Abs(q2Pz/(SQRT_S/2.));
 
-    const double pdf1_1 = myWeight->computePdf(21, x1, pow(M_T,2));
-    const double pdf1_2 = myWeight->computePdf(21, x2, pow(M_T,2));
+    const double pdf1_1 = myWeight->ComputePdf(21, x1, pow(M_T,2));
+    const double pdf1_2 = myWeight->ComputePdf(21, x2, pow(M_T,2));
   
     // Compute flux factor 1/(2*x1*x2*s)
     const double PhaseSpaceIn = 1.0 / ( 2. * x1 * x2 * pow(SQRT_S,2)); 
@@ -587,7 +727,7 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
       delete [] p.at(j); p.at(j) = NULL;
     }
 
-    const double thisSolResult = PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac;
+    const double thisSolResult = PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac * flatterJac;
     *Value += thisSolResult; 
     
     // Check whether the next solutions for (E1,E2) are the same => don't redo all this!
@@ -602,8 +742,11 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     //cout << "Found PDF1 = " << pdf1_1 << ", PDF2 = " << pdf1_2 << ", PS in = " << PhaseSpaceIn << ", PS out = " << PhaseSpaceOut << ", jac = " << jac << endl;
     //cout << "===> Matrix element = " << matrix_elements1[0] << ", prod = " << thisSolResult << ", multiplicity = " << countEqualSol << endl << endl; 
 
+    // If we have included the next solutions already, skip them!
     i += countEqualSol - 1;
     countSol += countEqualSol;
+    
+    myEvent->GetTTbar()->Fill(tot.M(), *weight * (double)countEqualSol * thisSolResult);
   }
   //myWeight->fillCountSol(countSol);
 
@@ -613,82 +756,14 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     return 0;
   }
 
-  double flatterJac = range1 * range2 * range3 * range4;
-  flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
-  flatterJac /= pow(TMath::Cos(y1) * TMath::Cos(y2) * TMath::Cos(y3) * TMath::Cos(y4), 2.);
-
   // ### FOR NWA
   //double flatterJac = pow(TMath::Pi(),4.) * (M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T);
 
   //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 
-  *Value *= flatterJac;
-
   return 0;
 }
 
-double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met){
-  
-  cout << "Initializing integration..." << endl;
-
-  MEWeight myWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
-
-  int neval, nfail;
-  double mcResult=0, prob=0;
-  
-  char verbosity = 0; // 0-3
-  bool subregion = false; // true = only last set of samples is used for final evaluation of integral
-  bool smoothing = false;
-  bool retainStateFile = false; // false => delete state file when integration ends
-  bool takeOnlyGridFromFile = true; // false => full state taken from file (if present), true => only grid is taken (e.g. to use it for another integrand)
-  unsigned int level = 0; 
-
-  unsigned int flags = setFlags(verbosity, subregion, retainStateFile, level, smoothing, takeOnlyGridFromFile);
-
-  cout << "Starting integration..." << endl;
-
-  cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
-  Vegas(
-    4,                      // (int) dimensions of the integrated volume
-    1,                      // (int) dimensions of the integrand
-    (integrand_t) MEFunct,  // (integrand_t) integrand (cast to integrand_t)
-    //(integrand_t) BWTest, // (integrand_t) integrand (cast to integrand_t)
-    (void*) &myWeight,      // (void*) pointer to additional arguments passed to integrand
-    1,                      // (int) maximum number of points given the integrand in each invocation (=> SIMD) ==> PS points = vector of sets of points (x[ndim][nvec]), integrand returns vector of vector values (f[ncomp][nvec])
-    0.005,                  // (double) requested relative accuracy |-> error < max(rel*value,abs)
-    0.,                     // (double) requested absolute accuracy |
-    flags,                  // (int) various control flags in binary format, see setFlags function
-    0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
-    10000,                  // (int) minimum number of integrand evaluations
-    50000,                  // (int) maximum number of integrand evaluations (approx.!)
-    10000,                  // (int) number of integrand evaluations per interations (to start)
-    0,                      // (int) increase in number of integrand evaluations per interations
-    1000,                   // (int) batch size for sampling
-    0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
-    "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
-    NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
-    &neval,                 // (int*) actual number of evaluations done
-    &nfail,                 // 0=desired accuracy was reached; -1=dimensions out of range; >0=accuracy was not reached
-    &mcResult,              // (double*) integration result ([ncomp])
-    error,                  // (double*) integration error ([ncomp])
-    &prob                   // (double*) Chi-square p-value that error is not reliable (ie should be <0.95) ([ncomp])
-  );
-  
-  cout << "Integration done." << endl;
-
-  cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
-  mycount = 0;
-
-  cout << " mcResult= " << mcResult << " +- " << *error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl;
-
-  //myWeight.writeHists();
-  
-  if(std::isnan(*error))
-  *error = 0.;
-  if(std::isnan(mcResult))
-  mcResult = 0.;
-  return mcResult;
-}
 
 
 int main(int argc, char *argv[])
@@ -743,6 +818,10 @@ int main(int argc, char *argv[])
 
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
+  
+  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1");
+
+  TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", BINNING, START, STOP);
 
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event
@@ -795,6 +874,8 @@ int main(int argc, char *argv[])
     TStopwatch chrono;
     chrono.Start();
 
+    truth_TTbar->Fill( (gen_ep + gen_b + gen_mum + gen_bbar + gen_Met).M() );
+
     for(int permutation = 1; permutation <= 2; permutation ++){
 
       //permutation = 1;
@@ -825,9 +906,11 @@ int main(int argc, char *argv[])
         double error = 0;
 
         if(permutation == 1)
-          weight = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met)/2;
+          myWeight->SetEvent(gen_ep, gen_mum, gen_b, gen_bbar, gen_Met);
         if(permutation == 2)
-          weight = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met)/2;
+          myWeight->SetEvent(gen_ep, gen_mum, gen_bbar, gen_b, gen_Met);
+
+        weight = myWeight->ComputeWeight(error)/2.; 
 
         Weight_TT_cpp += weight;
         Weight_TT_Error_cpp += pow(error/2,2.);
@@ -918,7 +1001,12 @@ int main(int argc, char *argv[])
     //break;
   }
 
+  truth_TTbar->Scale(1./truth_TTbar->Integral());
+  truth_TTbar->Write();
+  myWeight->WriteHist();
+
   outTree->Write();
-  outFile->Close();
+  delete myWeight;
+  delete outFile; outFile = NULL;
 }
 
