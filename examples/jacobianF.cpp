@@ -28,14 +28,7 @@ double computeJacobianF(const std::vector<TLorentzVector> p, const double sqrt_s
 	const double p4y = p.at(3).Py();
 	const double p4z = p.at(3).Pz();
 
-    double jac = 16d0*(E4*(p1z*p2y*p3x - p1y*p2z*p3x - p1z*p2x*p3y +
-     -        p1x*p2z*p3y + p1y*p2x*p3z - p1x*p2y*p3z) +
-     -     E2*p1z*p3y*p4x - E1*p2z*p3y*p4x - E2*p1y*p3z*p4x +
-     -     E1*p2y*p3z*p4x - E2*p1z*p3x*p4y + E1*p2z*p3x*p4y +
-     -     E2*p1x*p3z*p4y - E1*p2x*p3z*p4y +
-     -     (E2*p1y*p3x - E1*p2y*p3x - E2*p1x*p3y + E1*p2x*p3y)*p4z +
-     -     E3*(-(p1z*p2y*p4x) + p1y*p2z*p4x + p1z*p2x*p4y -
-     -        p1x*p2z*p4y - p1y*p2x*p4z + p1x*p2y*p4z))
+    double jac = 16*(E4*(p1z*p2y*p3x - p1y*p2z*p3x - p1z*p2x*p3y + p1x*p2z*p3y + p1y*p2x*p3z - p1x*p2y*p3z) + E2*p1z*p3y*p4x - E1*p2z*p3y*p4x - E2*p1y*p3z*p4x + E1*p2y*p3z*p4x - E2*p1z*p3x*p4y + E1*p2z*p3x*p4y + E2*p1x*p3z*p4y - E1*p2x*p3z*p4y + (E2*p1y*p3x - E1*p2y*p3x - E2*p1x*p3y + E1*p2x*p3y)*p4z + E3*(-(p1z*p2y*p4x) + p1y*p2z*p4x + p1z*p2x*p4y - p1x*p2z*p4y - p1y*p2x*p4z + p1x*p2y*p4z));
 
 
 	//std::cout << "jac=" << abs(jac) << std::endl;
