@@ -10,6 +10,7 @@
 #include "LHAPDF/PDFSet.h"
 
 #include "TLorentzVector.h"
+#include "TH1D.h"
 
 #include "transferFunction.h"
 #include "MEEvent.h"
@@ -36,7 +37,10 @@ class MEWeight{
 
   private:
 
-  //TH1D* hst_TTbar;
+  /*TH1D* hst_TTbar;
+  TH1D* hst_Pt;
+  TH1D* hst_Px;
+  TH1D* hst_Py;*/
 
   CPPProcess process;
   LHAPDF::PDF* pdf;

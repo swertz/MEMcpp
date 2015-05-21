@@ -31,6 +31,10 @@ int main(int argc, char *argv[])
   TChain chain("Delphes");
   chain.Add(inputFile.c_str());
 
+  double MadWeight, MadWeight_Error;
+  chain.SetBranchAddress("Weight_TT", &MadWeight);
+  chain.SetBranchAddress("Weight_TT_Error", &MadWeight_Error);
+
   // Get pointers to branches used in this analysis
   TClonesArray *branchGen = NULL;
   chain.SetBranchAddress("Particle", &branchGen);
@@ -56,7 +60,7 @@ int main(int argc, char *argv[])
   myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
   myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
-  TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", BINNING, START, STOP);
+  //TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", 250, 2000, 1750);
 
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event
@@ -109,7 +113,7 @@ int main(int argc, char *argv[])
     TStopwatch chrono;
     chrono.Start();
 
-    truth_TTbar->Fill( (gen_ep + gen_b + gen_mum + gen_bbar + gen_Met).M() );
+    //truth_TTbar->Fill( (gen_ep + gen_b + gen_mum + gen_bbar + gen_Met).M() );
 
     for(int permutation = 1; permutation <= 2; permutation++){
 
@@ -137,20 +141,22 @@ int main(int argc, char *argv[])
     Weighted_TT_cpp = true;
 
     cout << "====> Event " << entry << ": weight = " << Weight_TT_cpp << " +- " << Weight_TT_Error_cpp << endl;
-    cout << "      CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << endl << endl;
+    cout << "      CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << endl;
+    cout << "      MadWeight: " << MadWeight << " +- " << MadWeight_Error << endl << endl;
 
     outTree->Fill();
 
     //count_wgt++;
   }
+  
+  outFile->cd();
 
   /*truth_TTbar->Scale(1./truth_TTbar->Integral());
-  truth_TTbar->Write();
-  myWeight->WriteHist();*/
+  truth_TTbar->Write();*/
 
-  outFile->cd();
   outTree->Write();
-  delete myWeight;
+  //myWeight->WriteHist();
+  delete myWeight; myWeight = NULL;
   delete outFile; outFile = NULL;
 }
 

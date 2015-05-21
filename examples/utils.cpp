@@ -47,6 +47,14 @@ template<typename T> T sign(const T x){
     return -1;
 }
 
+double dEoverdP(const double E, const double m){
+  const double rad = SQ(E) - SQ(m);
+  if(rad <= 0)
+    return 0.;
+  else
+    return E/sqrt(rad);
+}
+
 double cosXpm2PI3(const double x, const double pm){
   return -0.5*( cos(x) + pm * sin(x) * sqrt(3.) );
 }

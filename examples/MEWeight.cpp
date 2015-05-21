@@ -10,6 +10,7 @@
 #include "cuba.h"
 
 #include "TLorentzVector.h"
+#include "TH1D.h"
 
 #include "MEWeight.h"
 #include "MEEvent.h"
@@ -17,7 +18,8 @@
 #include "transferFunction.h"
 #include "utils.h"
 
-#define SQRT_S 13000
+//#define VEGAS
+#define SUAVE
 
 using namespace std;
 
@@ -34,6 +36,9 @@ MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, c
   myTF = new TransferFunction(fileTF);
 
   //hst_TTbar = new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP);
+  /*hst_Pt = new TH1D("Pt", "Pt_{rec} - Pt_{gen}", 100, -150, 150);
+  hst_Px = new TH1D("Px", "Px_{rec} - Px_{gen}", 100, -150, 150);
+  hst_Py = new TH1D("Py", "Py_{rec} - Py_{gen}", 100, -150, 150);*/
 }
 
 double MEWeight::ComputePdf(const int pid, const double x, const double q2){
@@ -68,7 +73,10 @@ void MEWeight::AddTF(const std::string particleName, const std::string histName)
   //c->Write();
   hst_TTbar->Write();
   //c->Print("plots/DMEM_ttbar.png", "png");
-  //delete c; c = 0;
+  //delete c; c = 0;*/
+  /*hst_Pt->Write();
+  hst_Px->Write();
+  hst_Py->Write();
 
 }*/
 
@@ -77,6 +85,9 @@ double MEWeight::ComputeWeight(double &error){
   cout << "Initializing integration..." << endl;
 
   int neval, nfail;
+#ifdef SUAVE 
+  int nsubregions;
+#endif
   double mcResult=0, prob=0;
   
   char verbosity = 0; // 0-3
@@ -90,25 +101,40 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << "Starting integration..." << endl << endl;
 
-  cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  //cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+#ifdef VEGAS
   Vegas(
+#endif
+#ifdef SUAVE 
+  Suave(
+#endif
     8,                      // (int) dimensions of the integrated volume
     1,                      // (int) dimensions of the integrand
     (integrand_t) CUBAIntegrand,  // (integrand_t) integrand (cast to integrand_t)
     (void*) this,           // (void*) pointer to additional arguments passed to integrand
     1,                      // (int) maximum number of points given the integrand in each invocation (=> SIMD) ==> PS points = vector of sets of points (x[ndim][nvec]), integrand returns vector of vector values (f[ncomp][nvec])
-    0.005,                  // (double) requested relative accuracy |-> error < max(rel*value,abs)
-    0.,                     // (double) requested absolute accuracy |
+    0.005,                  // (double) requested relative accuracy  /
+    0.,                     // (double) requested absolute accuracy /-> error < max(rel*value,abs)
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                  // (int) minimum number of integrand evaluations
     50000,                  // (int) maximum number of integrand evaluations (approx.!)
+#ifdef VEGAS
     10000,                  // (int) number of integrand evaluations per interations (to start)
-    30000,                      // (int) increase in number of integrand evaluations per interations
+    7500,                      // (int) increase in number of integrand evaluations per interations
     1000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
+#endif
+#ifdef SUAVE 
+    10000,                  // (int) number of new integrand evaluations in each subdivision
+    0,                    // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
+    4,                      // (int) exponent in the norm used to compute fluctuations of a sample
+#endif
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
     NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
+#ifdef SUAVE
+    &nsubregions,           // (int*) actual number of subregions needed
+#endif
     &neval,                 // (int*) actual number of evaluations done
     &nfail,                 // 0=desired accuracy was reached; -1=dimensions out of range; >0=accuracy was not reached
     &mcResult,              // (double*) integration result ([ncomp])
@@ -147,6 +173,9 @@ MEWeight::~MEWeight(){
   delete myTF; myTF = NULL;
   //cout << "Deleting hst_TTbar" << endl;
   //delete hst_TTbar; hst_TTbar = NULL;
+  /*delete hst_Pt; hst_Pt = NULL;
+  delete hst_Px; hst_Px = NULL;
+  delete hst_Py; hst_Py = NULL;*/
 }
 
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){

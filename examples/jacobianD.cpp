@@ -13,8 +13,8 @@ int ComputeTransformD(const double s13, const double s134, const double s25, con
                       const TLorentzVector p3, const TLorentzVector p4, const TLorentzVector p5, const TLorentzVector p6, const TLorentzVector Met,
                       std::vector<TLorentzVector> &p1, std::vector<TLorentzVector> &p2){
   // pT = transverse total momentum of the visible particles
-  //TLorentzVector pT = p3 + p4 + p5 + p6;
-  const TLorentzVector pT = -Met;
+  TLorentzVector pT = p3 + p4 + p5 + p6;
+  //const TLorentzVector pT = -Met;
 
   const double p34 = p3*p4;
   const double p56 = p5*p6;

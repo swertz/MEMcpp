@@ -27,6 +27,9 @@ unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainSta
 template<typename T> void swap(T &a, T &b);
 template<typename T> T sign(const T x);
 
+// Used to compute Jacobian for Transfer Function
+double dEoverdP(const double E, const double m);
+
 // Compute cos(x +- 2*pi/3) in a more "analytical" way (pm = +- 1)
 // Useful for solveCubic
 double cosXpm2PI3(const double x, const double pm);
