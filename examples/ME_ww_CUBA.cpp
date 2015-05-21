@@ -44,7 +44,7 @@
 #define M_W 80.419
 #define G_W 2.0476
 
-#define SQRT_S 13000
+#define SQRT_S 8000 
 
 #define SSTR( x ) dynamic_cast< std::ostringstream & > \
 				( std::ostringstream() << std::dec << x ).str()
@@ -179,16 +179,14 @@ int BWTest(const int *nDim, const double* Xarg, const int *nComp, double *Value,
 }
 
 int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs){
-	//cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
+	//cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 	//cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << endl;
 
 	MEWeight* myWeight = (MEWeight*) inputs;
 
 	TLorentzVector p3 = myWeight->GetP3();
-	TLorentzVector p4 = myWeight->GetP4();
-	TLorentzVector p5 = myWeight->GetP5();
-	TLorentzVector p6 = myWeight->GetP6();
+	TLorentzVector p4 = myWeight->GetP5();
 	TLorentzVector Met = myWeight->GetMet();
 
 	*Value = 0.;
@@ -212,130 +210,123 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 
 	//cout << "y1=" << y1 << ", m13=" << TMath::Sqrt(s13) << endl;
 
-	const double range2 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
-	const double y2 = - TMath::ATan(M_T/G_T) + range2 * Xarg[1];
-	const double s134 = M_T * G_T * TMath::Tan(y2) + pow(M_T,2.);
+	const double range2 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
+	const double y2 = - TMath::ATan(M_W/G_W) + range2 * Xarg[1];
+	const double s24 = M_W * G_W * TMath::Tan(y2) + pow(M_W,2.);
 
-	//cout << "y2=" << y2 << ", m134=" << TMath::Sqrt(s134) << endl;
 
-	const double range3 = TMath::Pi()/2. + TMath::ATan(M_W/G_W);
-	const double y3 = - TMath::ATan(M_W/G_W) + range3 * Xarg[2];
-	const double s25 = M_W * G_W * TMath::Tan(y3) + pow(M_W,2.);
+	//const double q1 = Xarg[2]/50.0;
+	//const double q2 = -Xarg[3]/50.0;
+	//
+	const double q1 = 0.0615737;
+	const double q2 = 0.0082855;
 
-	//cout << "y3=" << y3 << ", m25=" << TMath::Sqrt(s25) << endl;
+	//cout << "y2=" << y2 << ", M24=" << TMath::Sqrt(s24) << endl;
 
-	const double range4 = TMath::Pi()/2. + TMath::ATan(M_T/G_T);
-	const double y4 = - TMath::ATan(M_T/G_T) + range4 * Xarg[3];
-	const double s256 = M_T * G_T * TMath::Tan(y4) + pow(M_T,2.);
-
-	//cout << "y4=" << y4 << ", m256=" << TMath::Sqrt(s256) << endl;
-
-	if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M()){
+	//if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M()){
 		//cout << "Masses too small!" << endl;
-		mycount++;
-		return 0;
-	}
+	//	mycount++;
+	//	return 0;
+	//}
 
-	// #### FOR NWA
-	/*s13 = pow(M_W,2.);
-	s134 = pow(M_T,2.);
-	s25 = pow(M_W,2.);
-	s256 = pow(M_T,2.);*/
 
-	// pT = transverse total momentum of the visible particles
-	//TLorentzVector pT = p3 + p4 + p5 + p6;
-	const TLorentzVector pT = -Met;
+	// pb = transverse total momentum of the visible particles
+	const TLorentzVector pb = p3+p4;
 
-	const double p34 = p3*p4;
-	const double p56 = p5*p6;
-	const double p33 = p3.M2();
-	const double p44 = p4.M2();
-	const double p55 = p5.M2();
-	const double p66 = p6.M2();
+	// P2x = a1 E2 + a2 P2y + a3
+	// P2z = b1 E2 + b2 P2y + b3
 
-	//cout << "p34=" << p34 << ",p56=" << p56 << ",p33=" << p33 << ",p44=" << p44 << ",p55" << p55 << ",p66" << p66;
-	//cout << "Met=" << Met.Pt() << endl;
-
-	// A1 p1x + B1 p1y + C1 = 0, with C1(E1,E2)
-	// A2 p1y + B2 p2y + C2 = 0, with C2(E1,E2)
-	// ==> express p1x and p1y as functions of E1, E2
+	const double Qm = SQRT_S*(q1-q2)/2;
+	const double Qp = SQRT_S*(q1+q2)/2;
 	
-	const double A1 = 2.*( -p3.Px() + p3.Pz()*p4.Px()/p4.Pz() );
-	const double A2 = 2.*( p5.Px() - p5.Pz()*p6.Px()/p6.Pz() );
+        const double ka = -4*p4.Px()*p3.Pz()+4*p3.Px()+p4.Pz();
+	const double kb = 2*(p3.Pz()*p4.Px()-p3.Px()*p4.Pz());
+
+	const double b1 = -(1/kb) * (2*p4.E()*p3.Px()-2*p3.E()*p4.Px());
+	const double b2 = -(1/kb) * (2*p3.Py()*p4.Px()-2*p3.Px()*p4.Py());
+	const double b3 = -(1/kb) * (pow(p4.M(),2)*p3.Px()-2*p3.E()*pb.E()*p4.Px()+pow(p3.M(),2)*p4.Px()+2*p3.Px()*p4.Px()*pb.Px()+2*p3.Py()*p4.Px()*pb.Py()+2*p3.Pz()*p4.Px()*pb.Pz()-2*p3.Pz()*p4.Px()*Qm+2*p3.E()*p4.Px()*Qp-p4.Px()*s13-p3.Px()*s24);
+
+	const double a1 = (1/ka)*(-2*p4.Pz()*(-2*p3.E())-2*p3.Pz()*2*p4.E()) ;
+	const double a2 = (1/ka)*(-4*p3.Py()*p4.Pz()-2*p3.Pz()*(-2*p4.Py()));
+	const double a3 = -pb.Px()+(1/ka)*(-4*p4.Px()*pb.Px()*p3.Pz()-4*p3.Py()*pb.Py()*p4.Pz()-2*p4.Pz()*(-2*p3.E()*(pb.E()-Qp)+pow(p3.M(),2)+2*p3.Pz()*(pb.Pz()-Qm)-s13)-2*p3.Pz()*(pow(p4.M(),2)-s24)) ;
+
+
+	cout << "p2x : -51.7897 , p2y : 23.0622 , p2z : 112.36 , E2 : 125.852" << endl;
+	cout << "p2x : 50.8451 , p2y : -21.9069 , p2z : 46.6542 , E2 : 72.3999" << endl;
 	
-	const double B1 = 2.*( -p3.Py() + p3.Pz()*p4.Py()/p4.Pz() );
-	const double B2 = 2.*( p5.Py() - p5.Pz()*p6.Py()/p6.Pz() );
+	const double test = a1*125.852+a2*(23.0622)+a3;
+	const double test2 = b1*125.852+b2*(23.0622)+b3;
+        const double test3 = a1*72.3999+a2*(-21.9069)+a3;
+        const double test4 = b1*72.3999+b2*(-21.9069)+b3;
 
-	const double Dx = B2*A1 - B1*A2;
-	const double Dy = A2*B1 - A1*B2;
+	cout << " test p2x : " << test << endl;
+        cout << " test p2z : " << test2 << endl;
+	cout << " test p2x : " << test3 << endl;
+	cout << " test p2z : " << test4 << endl;
 
-	const double X = 2*( pT.Px()*p5.Px() + pT.Py()*p5.Py() - p5.Pz()/p6.Pz()*( 0.5*(s25 - s256 + p66) + p56 + pT.Px()*p6.Px() + pT.Py()*p6.Py() ) ) + p55 - s25;
-	const double Y = p3.Pz()/p4.Pz()*( s13 - s134 + 2*p34 + p44 ) - p33 + s13;
 
-	// p1x = alpha1 E1 + beta1 E2 + gamma1
-	// p1y = ...(2)
-	// p1z = ...(3)
-	// p2z = ...(4)
-	// p2x = ...(5)
-	// p2y = ...(6)
+	//cout << " ka : " << ka << endl;
+	//cout << " kb : " << kb << endl; 
+
+	//cout << " a : " << a1 << " " << a2 << " " << a3 << endl;
+	//cout << " b : " << b1 << " " << b2 << " " << b3 << endl;
+
+	// 0 = c1 E2 + c2 P2y + c3 
+	// E2 = d1 P2y + d2
 	
-	const double alpha1 = -2*B2*(p3.E() - p4.E()*p3.Pz()/p4.Pz())/Dx;
-	const double beta1 = 2*B1*(p5.E() - p6.E()*p5.Pz()/p6.Pz())/Dx;
-	const double gamma1 = B1*X/Dx + B2*Y/Dx;
+	const double c1 = 2*(Qp-pb.E())+2*pb.Px()*a1-2*(Qm-pb.Pz())*b1;
+	const double c2 = 2*pb.Px()*a2+2*pb.Py()-2*(Qm-pb.Pz())*b2;
+	const double c3 = -pow(Qp-pb.E(),2)+pow(pb.Px(),2)+2*pb.Px()*a3+pow(pb.Py(),2)+pow(Qm-pb.Pz(),2)-2*(Qm-pb.Pz())*b3;
 
-	const double alpha2 = -2*A2*(p3.E() - p4.E()*p3.Pz()/p4.Pz())/Dy;
-	const double beta2 = 2*A1*(p5.E() - p6.E()*p5.Pz()/p6.Pz())/Dy;
-	const double gamma2 = A1*X/Dy + A2*Y/Dy;
+	//cout << " c : " << c1 << " " << c2 << " " << c3 << endl;
+	
+	const double d1 = -c2/c1;
+	const double d2 = -c3/c1;
 
-	const double alpha3 = (p4.E() - alpha1*p4.Px() - alpha2*p4.Py())/p4.Pz();
-	const double beta3 = -(beta1*p4.Px() + beta2*p4.Py())/p4.Pz();
-	const double gamma3 = ( 0.5*(s13 - s134 + p44) + p34 - gamma1*p4.Px() - gamma2*p4.Py() )/p4.Pz();
+	//cout << " d : " << d1 << " " << d2 << endl; 
 
-	const double alpha4 = (alpha1*p6.Px() + alpha2*p6.Py())/p6.Pz();
-	const double beta4 = (p6.E() + beta1*p6.Px() + beta2*p6.Py())/p6.Pz();
-	const double gamma4 = ( 0.5*(s25 - s256 + p66) + p56 + (gamma1 + pT.Px())*p6.Px() + (gamma2 + pT.Py())*p6.Py() )/p6.Pz();
+	// alpha*P2y^2 + beta*P2y + gamma = 0
+	
+	const double alpha = pow(a1,2)*pow(d1,2)+pow(a2,2)+2*a1*a2*d1+1+pow(b1,2)*pow(d1,2)+pow(b2,2)+2*b1*b2*d1-pow(d1,2);
+	const double beta  = 2*pow(a1,2)*d1*d2+2*a1*a3*d1+2*a1*a2*d2+2*a2*a3+2*pow(b1,2)*d1*d2+2*b1*b3*d1+2*b1*b2*d2+2*b2*b3-2*d1*d2;
+	const double gamma = pow(a1,2)*pow(d2,2)+pow(a3,2)+2*a1*a3*d2+pow(b1,2)*pow(d2,2)+pow(b3,2)+2*b1*b3*d2-pow(d2,2);
+	
+	// Find P2Y
+	vector<double> P2Y;
 
-	const double alpha5 = -alpha1;
-	const double beta5 = -beta1;
-	const double gamma5 = -pT.Px() - gamma1;
+	solveQuadratic(alpha, beta, gamma, P2Y, false);
 
-	const double alpha6 = -alpha2;
-	const double beta6 = -beta2;
-	const double gamma6 = -pT.Py() - gamma2;
-
-	// a11 E1^2 + a22 E2^2 + a12 E1E2 + a10 E1 + a01 E2 + a00 = 0
-	// id. with bij
-
-	const double a11 = -1 + ( pow(alpha1,2.) + pow(alpha2,2.) + pow(alpha3,2.) );
-	const double a22 = pow(beta1,2.) + pow(beta2,2.) + pow(beta3,2.);
-	const double a12 = 2.*( alpha1*beta1 + alpha2*beta2 + alpha3*beta3 );
-	const double a10 = 2.*( alpha1*gamma1 + alpha2*gamma2 + alpha3*gamma3 );
-	const double a01 = 2.*( beta1*gamma1 + beta2*gamma2 + beta3*gamma3 );
-	const double a00 = pow(gamma1,2.) + pow(gamma2,2.) + pow(gamma3,2.);
-
-	const double b11 = pow(alpha5,2.) + pow(alpha6,2.) + pow(alpha4,2.);
-	const double b22 = -1 + ( pow(beta5,2.) + pow(beta6,2.) + pow(beta4,2.) );
-	const double b12 = 2.*( alpha5*beta5 + alpha6*beta6 + alpha4*beta4 );
-	const double b10 = 2.*( alpha5*gamma5 + alpha6*gamma6 + alpha4*gamma4 );
-	const double b01 = 2.*( beta5*gamma5 + beta6*gamma6 + beta4*gamma4 );
-	const double b00 = pow(gamma5,2.) + pow(gamma6,2.) + pow(gamma4,2.);
-
-	// Find the intersection of the 2 ellipses (at most 4 real solutions for (E1,E2))
-	vector<double> E1, E2;
 	//cout << "coefs=" << a11 << "," << a22 << "," << a12 << "," << a10 << "," << a01 << "," << a00 << endl;
 	//cout << "coefs=" << b11 << "," << b22 << "," << b12 << "," << b10 << "," << b01 << "," << b00 << endl;
-	solve2Quads(a11, a22, a12, a10, a01, a00, b11, b22, b12, b10, b01, b00, E1, E2);
 
 	// For each solution (E1,E2), find the neutrino 4-momenta p1,p2, find the initial quark momenta,
 	// evaluate the matrix element and the jacobian
 	
-	if(E1.size() == 0){
+	if(P2Y.size() == 0){
 		//cout << "No solutions!" << endl;
 		mycount++;
 		return 0;
 	}
 
+	cout << "Checking W Mass... " << P2Y.size() << " entries" << endl;
+	for(unsigned int i=0; i<P2Y.size(); i++){
+		const double P2X = a1*d1*P2Y.at(i)+a1*d2+a2*P2Y.at(i)+a3;
+		const double P2Z = b1*d1*P2Y.at(i)+b1*d2+b2*P2Y.at(i)+b3;
 
+		TLorentzVector P2, W;
+		const double P2E = sqrt(pow(P2X,2)+pow(P2Y.at(i),2)+pow(P2Z,2));
+		P2.SetPxPyPzE(P2X,P2Y.at(i),P2Z,P2E);
+		W = P2+p4;
+
+		cout << "  W24 mass : " << sqrt(s24) << " " <<  W.M();
+		//cout << "W13 mass : " << s13 << " " <<  W.M() << endl;
+
+
+	}
+	cout << endl;
+
+
+	/*
 	for(unsigned int i=0; i<E1.size(); i++){
 		if(E1.size() >= 0){
 			if(E1.at(0) > E1.at(1))
@@ -373,21 +364,6 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		const TLorentzVector p25 = p2 + p5;
 		const TLorentzVector p256 = p2 + p5 + p6;
 
-		/*cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
-		cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
-		
-		cout << "Electron (E,Px,Py,Pz) = ";
-		cout << p3.E() << "," << p3.Px() << "," << p3.Py() << "," << p3.Pz() << endl;
-		cout << "Electron neutrino (E,Px,Py,Pz) = ";
-		cout << p1.E() << "," << p1.Px() << "," << p1.Py() << "," << p1.Pz() << endl;
-		cout << "b quark (E,Px,Py,Pz) = ";
-		cout << p4.E() << "," << p4.Px() << "," << p4.Py() << "," << p4.Pz() << endl;
-		cout << "Muon (E,Px,Py,Pz) = ";
-		cout << p5.E() << "," << p5.Px() << "," << p5.Py() << "," << p5.Pz() << endl;
-		cout << "Muon neutrino (E,Px,Py,Pz) = ";
-		cout << p2.E() << "," << p2.Px() << "," << p2.Py() << "," << p2.Pz() << endl;
-		cout << "Anti b quark (E,Px,Py,Pz) = ";
-		cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;*/
 	
 		const TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
 
@@ -435,9 +411,8 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 		// dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
 		const double dPhip3 = pow(p3.P(),2.)*TMath::Sin(p3.Theta())/(2.0*p3.E()*pow(2.*TMath::Pi(),3));
 		const double dPhip4 = pow(p4.P(),2.)*TMath::Sin(p4.Theta())/(2.0*p4.E()*pow(2.*TMath::Pi(),3));
-		const double dPhip5 = pow(p5.P(),2.)*TMath::Sin(p5.Theta())/(2.0*p5.E()*pow(2.*TMath::Pi(),3));
-		const double dPhip6 = pow(p6.P(),2.)*TMath::Sin(p6.Theta())/(2.0*p6.E()*pow(2.*TMath::Pi(),3));
-		const double PhaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
+
+		const double PhaseSpaceOut = dPhip3 * dPhip4;
 
 		// Set momenta for this event
 		myWeight->setProcessMomenta(p);
@@ -491,11 +466,11 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
 	//cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<	endl;
 
 	*Value *= flatterJac;
-
+	*/
 	return 0;
 }
 
-double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b, TLorentzVector bbar, TLorentzVector Met, double *time){
+double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector Met, double *time){
 	
 	/*TH1D *hst_Wm = new TH1D("test_mu", "test_1D", 150,0,150);
 	TH1D *hst_We = new TH1D("test_ep", "test_1D", 150,0,150);
@@ -506,6 +481,8 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	
 	TStopwatch chrono;
 	chrono.Start();
+
+	TLorentzVector b, bbar;
 
 	MEWeight myWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", ep, mum, b, bbar, Met);
 
@@ -522,7 +499,7 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 	unsigned int flags = setFlags(verbosity, subregion, retainStateFile, level, smoothing, takeOnlyGridFromFile);
 
 	cout << "Starting integration..." << endl;
-	
+	cubacores(0,0);	
 	Vegas(
 		4,						// (int) dimensions of the integrated volume
 		1,						// (int) dimensions of the integrand
@@ -534,8 +511,8 @@ double ME(double *error, TLorentzVector ep, TLorentzVector mum, TLorentzVector b
 		0.,						// (double) requested absolute accuracy |
 		flags,					// (int) various control flags in binary format, see setFlags function
 		8945,						// (int) seed (seed==0 && no control flag => SOBOL; seed!=0 && control flag==0 => Mersenne Twister)
-		10000,					// (int) minimum number of integrand evaluations
-		50000,					// (int) maximum number of integrand evaluations (approx.!)
+		0,					// (int) minimum number of integrand evaluations
+		500,					// (int) maximum number of integrand evaluations (approx.!)
 		1000,					// (int) number of integrand evaluations per interations (to start)
 		0,						// (int) increase in number of integrand evaluations per interations
 		1000,					// (int) batch size for sampling
@@ -695,7 +672,7 @@ int main(int argc, char *argv[])
 		treeReader->ReadEntry(entry);
 		chain.GetEntry(entry);
 
-		TLorentzVector gen_ep, gen_mum, gen_b, gen_bbar, gen_Met;
+		TLorentzVector gen_ep, gen_mum, gen_Met, gen_nm, gen_ne;
 
 		GenParticle *gen;
 
@@ -704,7 +681,7 @@ int main(int argc, char *argv[])
 		for (Int_t i = 0; i < branchGen->GetEntries(); i++){
 			gen = (GenParticle *) branchGen->At(i);
 			//cout << "Status=" << gen->Status << ", PID=" << gen->PID << ", E=" << gen->P4().E() << endl;
-			if (gen->Status == 1){
+			if (gen->Status == 3){
 				if (gen->PID == -11){
 					gen_ep = gen->P4();
 					//count_ep++;
@@ -712,12 +689,23 @@ int main(int argc, char *argv[])
 					gen_mum = gen->P4();
 					//count_mum++;
 				}
-				else if (gen->PID == 12) gen_Met += gen->P4();
-				else if (gen->PID == -14) gen_Met += gen->P4();
-				else if (gen->PID == 5) gen_b = gen->P4();
-				else if (gen->PID == -5) gen_bbar = gen->P4();
+				else if (gen->PID == 12) {gen_Met += gen->P4(); gen_ne = gen->P4();}
+				else if (gen->PID == -14) {gen_Met += gen->P4(); gen_nm = gen->P4();}
 			}
 		}
+
+		cout << "p2x : " << gen_ne.Px() << " , p2y : " << gen_ne.Py() << " , p2z : " << gen_ne.Pz() << " , E2 : " << gen_ne.E() << endl;
+		cout << "p2x : " << gen_nm.Px() << " , p2y : " << gen_nm.Py() << " , p2z : " << gen_nm.Pz() << " , E2 : " << gen_nm.E() << endl;
+
+		double Pzext = (gen_Met+gen_ep+gen_mum).Pz();
+		double Eext  = (gen_Met+gen_ep+gen_mum).E();
+
+		cout << "pz   : " << (gen_Met+gen_ep+gen_mum).Pz() << endl;
+		cout << "etot : " << (gen_Met+gen_ep+gen_mum).E() << endl;
+		cout << "q1 : " << (Pzext+Eext)/(2*4000) << endl;;
+		cout << "q2 : " << (Pzext-Eext)/(2*4000) << endl;;
+	
+
 
 		//if(count_ep != 1 || count_mum != 1)
 		//	continue;
@@ -726,12 +714,8 @@ int main(int argc, char *argv[])
 		cout << "From MadGraph:" << endl;
 		cout << "Electron" << endl;
 		cout << gen_ep.E() << "," << gen_ep.Px() << "," << gen_ep.Py() << "," << gen_ep.Pz() << endl;
-		cout << "b quark" << endl;
-		cout << gen_b.E() << "," << gen_b.Px() << "," << gen_b.Py() << "," << gen_b.Pz() << endl;
 		cout << "Muon" << endl;
 		cout << gen_mum.E() << "," << gen_mum.Px() << "," << gen_mum.Py() << "," << gen_mum.Pz() << endl;
-		cout << "Anti b quark" << endl;
-		cout << gen_bbar.E() << "," << gen_bbar.Px() << "," << gen_bbar.Py() << "," << gen_bbar.Pz() << endl;
 		cout << "MET" << endl;
 		cout << gen_Met.E() << "," << gen_Met.Px() << "," << gen_Met.Py() << "," << gen_Met.Pz() << endl;
 
@@ -768,9 +752,9 @@ int main(int argc, char *argv[])
 				double error = 0;
 
 				if(permutation == 1)
-					weight = ME(&error, gen_ep, gen_mum, gen_b, gen_bbar, gen_Met, &temp_time)/2;
+					weight = ME(&error, gen_ep, gen_mum, gen_Met, &temp_time)/2;
 				if(permutation == 2)
-					weight = ME(&error, gen_ep, gen_mum, gen_bbar, gen_b, gen_Met, &temp_time)/2;
+					weight = ME(&error, gen_ep, gen_mum, gen_Met, &temp_time)/2;
 
 				Weight_TT_cpp += weight;
 				Weight_TT_Error_cpp += pow(error/2,2.);

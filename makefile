@@ -7,12 +7,16 @@ sourcedir := examples/
 ttbar_PROC_DIR := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/
 ttbar_MGproc := $(ttbar_PROC_DIR)/SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.o $(ttbar_PROC_DIR)/src/*.o
 
+all: ww ttbar
 
-all: ttbar
-
+ww: $(sourcedir)/ME_ww_CUBA.o $(sourcedir)/utils.o $(sourcedir)/jacobianF.o
+	$(CXX) -o $(sourcedir)/ME_ww_CUBA.exe $(ttbar_MGproc) $^ $(LDFLAGS)
 
 ttbar: $(sourcedir)/ME_ttbar_CUBA.o $(sourcedir)/utils.o $(sourcedir)/jacobianD.o 
 	$(CXX) -o $(sourcedir)/ME_ttbar_CUBA.exe $(ttbar_MGproc) $^ $(LDFLAGS)
+
+$(sourcedir)/ME_ww_CUBA.o: $(sourcedir)/ME_ww_CUBA.cpp
+	$(CXX) $(CXXFLAGS) -I$(ttbar_PROC_DIR) -c $< -o $@
 
 $(sourcedir)/ME_ttbar_CUBA.o: $(sourcedir)/ME_ttbar_CUBA.cpp
 	$(CXX) $(CXXFLAGS) -I$(ttbar_PROC_DIR) -c $< -o $@
@@ -20,6 +24,10 @@ $(sourcedir)/ME_ttbar_CUBA.o: $(sourcedir)/ME_ttbar_CUBA.cpp
 
 $(sourcedir)/jacobianD.o: $(sourcedir)/jacobianD.cpp $(sourcedir)/jacobianD.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(sourcedir)/jacobianF.o: $(sourcedir)/jacobianF.cpp $(sourcedir)/jacobianF.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 
 $(sourcedir)/utils.o: $(sourcedir)/utils.cpp $(sourcedir)/utils.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
