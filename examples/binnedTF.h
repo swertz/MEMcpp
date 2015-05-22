@@ -12,10 +12,10 @@ class BinnedTF{
   BinnedTF(const std::string particleName, const std::string histName, TFile* file);
   ~BinnedTF();
   double Evaluate(const double Erec, const double Egen) const;
-  double GetDeltaRange() const;
+  double GetDeltaRange(const double Erec) const;
   double GetDeltaMin() const;
-  double GetDeltaMax() const;
-  void SetDeltaRange(double min, double max);
+  double GetDeltaMax(const double Erec) const;
+  //void SetDeltaRange(double min, double max);
 
   private:
 

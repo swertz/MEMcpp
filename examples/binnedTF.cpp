@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "binnedTF.h"
+#include "utils.h"
 
 #include "TH2.h"
 #include "TFile.h"
@@ -53,19 +54,19 @@ double BinnedTF::Evaluate(const double Erec, const double Egen) const {
   return _TF->GetBinContent(xBin, yBin);
 }
 
-double BinnedTF::GetDeltaRange() const {
-  return _deltaRange;
+double BinnedTF::GetDeltaRange(const double Erec) const {
+  return min(_deltaMax, Erec) - _deltaMin;
 }
 
 double BinnedTF::GetDeltaMin() const {
   return _deltaMin;
 }
 
-double BinnedTF::GetDeltaMax() const {
-  return _deltaMax;
+double BinnedTF::GetDeltaMax(const double Erec) const {
+  return min(_deltaMax, Erec);
 }
 
-void BinnedTF::SetDeltaRange(double min, double max){
+/*void BinnedTF::SetDeltaRange(double min, double max){
   if(min < _histDeltaMin)
     min = _histDeltaMin;
   
@@ -75,4 +76,4 @@ void BinnedTF::SetDeltaRange(double min, double max){
   _deltaMin = min;
   _deltaMax = max;
   _deltaRange = _deltaMax - _deltaMin;
-}
+}*/

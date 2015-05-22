@@ -47,14 +47,14 @@ double TransferFunction::Evaluate(const std::string particleName, const double E
   return _TF[particleName]->Evaluate(Erec, Egen);
 }
 
-double TransferFunction::GetDeltaRange(const std::string particleName){
+double TransferFunction::GetDeltaRange(const std::string particleName, const double Erec){
   // We might want to avoid to check this every time, since it might slow things down too much
   if( _TF.find(particleName) == _TF.end() ){
     cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
     exit(1);
   }
 
-  return _TF[particleName]->GetDeltaRange();
+  return _TF[particleName]->GetDeltaRange(Erec);
 }
 
 double TransferFunction::GetDeltaMin(const std::string particleName){
@@ -67,17 +67,17 @@ double TransferFunction::GetDeltaMin(const std::string particleName){
   return _TF[particleName]->GetDeltaMin();
 }
 
-double TransferFunction::GetDeltaMax(const std::string particleName){
+double TransferFunction::GetDeltaMax(const std::string particleName, const double Erec){
   // We might want to avoid to check this every time, since it might slow things down too much
   if( _TF.find(particleName) == _TF.end() ){
     cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
     exit(1);
   }
 
-  return _TF[particleName]->GetDeltaMax();
+  return _TF[particleName]->GetDeltaMax(Erec);
 }
 
-void TransferFunction::SetDeltaRange(const std::string particleName, double min, double max){
+/*void TransferFunction::SetDeltaRange(const std::string particleName, double min, double max){
   // We might want to avoid to check this every time, since it might slow things down too much
   if( _TF.find(particleName) == _TF.end() ){
     cerr << "Error: TF component for " << particleName << " is not defined!" << endl;
@@ -85,4 +85,4 @@ void TransferFunction::SetDeltaRange(const std::string particleName, double min,
   }
 
   return _TF[particleName]->SetDeltaRange(min, max);
-}
+}*/

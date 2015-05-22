@@ -38,52 +38,84 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   TLorentzVector p3 = p3rec;
   const double E3rec = p3rec.E();
-  const double p3DeltaRange = myTF->GetDeltaRange("electron");
-  const double E3gen = E3rec - myTF->GetDeltaMax("electron") + p3DeltaRange * Xarg[4];
+  const double p3DeltaRange = myTF->GetDeltaRange("electron", E3rec);
+  const double E3gen = E3rec - myTF->GetDeltaMax("electron", E3rec) + p3DeltaRange * Xarg[4];
   const double pt3gen = TMath::Sqrt( SQ(E3gen) - SQ(p3rec.M()) ) / TMath::CosH(p3rec.Eta());
-  //p3.SetE(E3gen);
-  //p3.SetPtEtaPhiE(p3rec.Pt()*E3gen/E3rec, p3rec.Eta(), p3rec.Phi(), E3gen);
   p3.SetPtEtaPhiE(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
   if(p3DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange;
+    TFValue *= myTF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3.M());
+
+  TLorentzVector p5 = p5rec;
+  const double E5rec = p5rec.E();
+  const double p5DeltaRange = myTF->GetDeltaRange("muon", E5rec);
+  const double E5gen = E5rec - myTF->GetDeltaMax("muon", E5rec) + p5DeltaRange * Xarg[6];
+  const double pt5gen = TMath::Sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / TMath::CosH(p5rec.Eta());
+  p5.SetPtEtaPhiE(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
+  if(p5DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5.M());
+
+  //// NO conservation of momentum
 
   TLorentzVector p4 = p4rec;
   const double E4rec = p4rec.E();
-  const double p4DeltaRange = myTF->GetDeltaRange("jet");
-  const double E4gen = E4rec - myTF->GetDeltaMax("jet") + p4DeltaRange * Xarg[5];
+  const double p4DeltaRange = myTF->GetDeltaRange("jet", E4rec);
+  const double E4gen = E4rec - myTF->GetDeltaMax("jet", E4rec) + p4DeltaRange * Xarg[5];
   const double pt4gen = TMath::Sqrt( SQ(E4gen) - SQ(p4rec.M()) ) / TMath::CosH(p4rec.Eta());
-  //p4.SetE(E4gen);
-  //p4.SetPtEtaPhiE(p4rec.Pt()*E4gen/E4rec, p4rec.Eta(), p4rec.Phi(), E4gen);
   p4.SetPtEtaPhiE(pt4gen, p4rec.Eta(), p4rec.Phi(), E4gen);
   if(p4DeltaRange != 0.)
     TFValue *= myTF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4.M());
 
-  TLorentzVector p5 = p5rec;
-  const double E5rec = p5rec.E();
-  const double p5DeltaRange = myTF->GetDeltaRange("muon");
-  const double E5gen = E5rec - myTF->GetDeltaMax("muon") + p5DeltaRange * Xarg[6];
-  const double pt5gen = TMath::Sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / TMath::CosH(p5rec.Eta());
-  //p5.SetE(E5gen);
-  //p5.SetPtEtaPhiE(p5rec.Pt()*E5gen/E5rec, p5rec.Eta(), p5rec.Phi(), E5gen);
-  p5.SetPtEtaPhiE(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
-  if(p5DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange;
-
-  //// NO conservation of momentum
-
   TLorentzVector p6 = p6rec;
   const double E6rec = p6rec.E();
-  const double p6DeltaRange = myTF->GetDeltaRange("jet");
-  const double E6gen = p6rec.E() - myTF->GetDeltaMax("jet") + p6DeltaRange * Xarg[7];
+  const double p6DeltaRange = myTF->GetDeltaRange("jet", E6rec);
+  const double E6gen = p6rec.E() - myTF->GetDeltaMax("jet", E6rec) + p6DeltaRange * Xarg[7];
   const double pt6gen = TMath::Sqrt( SQ(E6gen) - SQ(p6rec.M()) ) / TMath::CosH(p6rec.Eta());
-  //p6.SetE(E6gen);
-  //p6.SetPtEtaPhiE(p6rec.Pt()*E6gen/E6rec, p6rec.Eta(), p6rec.Phi(), E6gen);
   p6.SetPtEtaPhiE(pt6gen, p6rec.Eta(), p6rec.Phi(), E6gen);
   if(p6DeltaRange != 0.)
     TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6.M());
 
   //// YES conservation of momentum
+  
+  /*TLorentzVector pVisTotRec = p3rec + p4rec + p5rec + p6rec;
+  //TLorentzVector pVisTotRec = -Met;
+  
+  std::vector<double> c4, c6;
+  solve2Linear(p4rec.Px(), p6rec.Px(), - pVisTotRec.Px() + p3.Px() + p5.Px(),
+               p4rec.Py(), p6rec.Py(), - pVisTotRec.Py() + p3.Py() + p5.Py(),
+               c4, c6, false);
 
+  if(c4.size() != 1){
+    cout << "Could not satisfy conservation of momentum!" << endl;
+    return 0.;
+  }
+  if(c4.at(0) < 0 || c6.at(0) < 0){
+    cout << "Could not satisfy conservation of momentum!" << endl;
+    return 0.;
+  }
+  
+  //cout << "Px before: " << (pVisTotRec).Px() << ", Px after: " << c6.at(0)*p6rec.Px()+c4.at(0)*p4rec.Px()+(p5+p3).Px() << ", Met Px: " << Met.Px() << endl;
+  //cout << "Py before: " << (pVisTotRec).Py() << ", Py after: " << c6.at(0)*p6rec.Py()+c4.at(0)*p4rec.Py()+(p5+p3).Py() << ", Met Py: " << Met.Py() << endl;
+
+  TLorentzVector p4 = p4rec;
+  const double E4rec = p4rec.E();
+  p4.SetPtEtaPhiM(c4.at(0)*p4rec.Pt(), p4rec.Eta(), p4rec.Phi(), p4rec.M());
+  const double E4gen = p4.E();
+  const double p4DeltaRange = myTF->GetDeltaRange("jet", E4rec);
+  if(p4DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange  * dEoverdP(E4gen, p4.M()); 
+
+  //cout << "dEoverdP4 = " << dEoverdP(E4gen, p4.M()) << ", M4 = " << p4.M() << endl;
+
+  TLorentzVector p6 = p6rec;
+  const double E6rec = p6rec.E();
+  p6.SetPtEtaPhiM(c6.at(0)*p6rec.Pt(), p6rec.Eta(), p6rec.Phi(), p6rec.M());
+  const double E6gen = p6.E();
+  const double p6DeltaRange = myTF->GetDeltaRange("jet", E6rec);
+  if(p6DeltaRange != 0.)
+    TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6.M());*/
+
+  //cout << "dEoverdP6 = " << dEoverdP(E6gen, p6.M()) << ", M6 = " << p6.M() << endl;
+  
   /*TLorentzVector p6 = p6rec;
   const double E6rec = p6rec.E();
   const double p6DeltaRange = myTF->GetDeltaRange("jet");
@@ -130,7 +162,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   //TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange;
   TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * factors.size();*/
 
-  //cout << "Pt before: " << (pVisTotRec).Pt() << ", Pt after: " << (pVisTotGen+p6).Pt() << ", Met Pt: " << Met.Pt() << endl;
+  //cout << "Pt before: " << (pVisTotRec).Pt() << ", Pt after: " << (p3+p4+p5+p6).Pt() << ", Met Pt: " << Met.Pt() << endl;
 
   //cout << "Final TF = " << TFValue << endl;
 

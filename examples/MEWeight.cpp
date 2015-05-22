@@ -18,8 +18,8 @@
 #include "transferFunction.h"
 #include "utils.h"
 
-//#define VEGAS
-#define SUAVE
+#define VEGAS
+//#define SUAVE
 
 using namespace std;
 
@@ -101,7 +101,7 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << "Starting integration..." << endl << endl;
 
-  //cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
 #ifdef VEGAS
   Vegas(
 #endif
@@ -120,8 +120,8 @@ double MEWeight::ComputeWeight(double &error){
     0,                  // (int) minimum number of integrand evaluations
     50000,                  // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
-    10000,                  // (int) number of integrand evaluations per interations (to start)
-    7500,                      // (int) increase in number of integrand evaluations per interations
+    4000,                  // (int) number of integrand evaluations per interations (to start)
+    0000,                      // (int) increase in number of integrand evaluations per interations
     1000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif

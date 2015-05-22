@@ -382,7 +382,7 @@ bool solve2Linear(const double a10, const double a01, const double a00,
     }
   }
 
-  const double e2 = (b10*a00-a01*b00)/det;
+  const double e2 = (b10*a00-a10*b00)/det;
   E2.push_back(e2);
   double e1;
   if(a10 == 0.)

@@ -17,10 +17,10 @@ class TransferFunction{
   void DefineComponent(const std::string particleName, const std::string histName);
 
   double Evaluate(const std::string particleName, const double Erec, const double Egen);
-  double GetDeltaRange(const std::string particleName);
+  double GetDeltaRange(const std::string particleName, const double Erec);
   double GetDeltaMin(const std::string particleName);
-  double GetDeltaMax(const std::string particleName);
-  void SetDeltaRange(const std::string particleName, const double min, const double max);
+  double GetDeltaMax(const std::string particleName, const double Erec);
+  //void SetDeltaRange(const std::string particleName, const double min, const double max);
 
   private:
 
