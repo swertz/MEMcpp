@@ -90,7 +90,7 @@ double MEWeight::ComputeWeight(double &error){
 #endif
   double mcResult=0, prob=0;
   
-  char verbosity = 0; // 0-3
+  char verbosity = 3; // 0-3
   bool subregion = false; // true = only last set of samples is used for final evaluation of integral
   bool smoothing = false;
   bool retainStateFile = false; // false => delete state file when integration ends
@@ -118,11 +118,11 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                  // (int) minimum number of integrand evaluations
-    50000,                  // (int) maximum number of integrand evaluations (approx.!)
+    750000,                  // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
-    4000,                  // (int) number of integrand evaluations per interations (to start)
+    50000,                  // (int) number of integrand evaluations per interations (to start)
     0000,                      // (int) increase in number of integrand evaluations per interations
-    1000,                   // (int) batch size for sampling
+    5000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
