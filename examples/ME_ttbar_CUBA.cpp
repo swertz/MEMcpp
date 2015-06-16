@@ -313,7 +313,7 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << "Starting integration..." << endl;
 
-  //cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
   Vegas(
     4,                      // (int) dimensions of the integrated volume
     1,                      // (int) dimensions of the integrand
@@ -326,10 +326,14 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                  // (int) minimum number of integrand evaluations
-    750000,                  // (int) maximum number of integrand evaluations (approx.!)
+    /*750000,                  // (int) maximum number of integrand evaluations (approx.!)
     50000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
-    10000,                   // (int) batch size for sampling
+    10000,                   // (int) batch size for sampling*/
+    5000,                  // (int) maximum number of integrand evaluations (approx.!)
+    1000,                  // (int) number of integrand evaluations per interations (to start)
+    0,                      // (int) increase in number of integrand evaluations per interations
+    100,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
     NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
@@ -618,11 +622,13 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     const TLorentzVector p25 = p2 + p5;
     const TLorentzVector p256 = p2 + p5 + p6;
 
+    const TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
+    
     /*myWeight->hst_We->Fill(p13.M());
     myWeight->hst_Wm->Fill(p25.M());
     myWeight->hst_t->Fill(p134.M());
     myWeight->hst_tbar->Fill(p256.M());*/
-    /*cout << "Solution " << i << ":" << endl;
+    cout << "Solution " << i << ":" << endl;
     cout << "Input: W+ mass=" << TMath::Sqrt(s13) << ", Top mass=" << TMath::Sqrt(s134) << ", W- mass=" << TMath::Sqrt(s25) << ", Anti-top mass=" << TMath::Sqrt(s256) << endl;
     cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
     //cout << "Differences: W+ mass=" << TMath::Sqrt(s13)-p13.M() << ", Top mass=" << TMath::Sqrt(s134)-p134.M() << ", W- mass=" << TMath::Sqrt(s25)-p25.M() << ", Anti-top mass=" << TMath::Sqrt(s256)-p256.M() << endl << endl;
@@ -630,7 +636,10 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     cout << "W+ mass=" << (TMath::Sqrt(s13)-p13.M())/p13.M() << endl;
     cout << "Top mass=" << (TMath::Sqrt(s134)-p134.M())/p134.M() << endl;
     cout << "W- mass=" << (TMath::Sqrt(s25)-p25.M())/p25.M() << endl;
-    cout << "Anti-top mass=" << (TMath::Sqrt(s256)-p256.M())/p256.M() << endl << endl;*/
+    cout << "Anti-top mass=" << (TMath::Sqrt(s256)-p256.M())/p256.M() << endl;
+    cout << "Neutrino mass=" << p1.M() << endl;
+    cout << "Neutrino mass=" << p2.M() << endl;
+    cout << "Conservation of impulsion: (" << tot.E() << ", " << tot.Px() << ", " << tot.Py() << "," << tot.Pz() << ")" << endl << endl;
     
     /*cout << "Electron (E,Px,Py,Pz) = ";
     cout << p3.E() << "," << p3.Px() << "," << p3.Py() << "," << p3.Pz() << endl;
@@ -645,8 +654,6 @@ int MEFunct(const int *nDim, const double* Xarg, const int *nComp, double *Value
     cout << "Anti b quark (E,Px,Py,Pz) = ";
     cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;*/
   
-    const TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
-    
     const double ETot = tot.E();
     const double PzTot = tot.Pz();
 
