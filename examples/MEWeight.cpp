@@ -101,11 +101,11 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << "Starting integration..." << endl << endl;
 
-  cubacores(0,0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  //cubacores(0, 0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
 #ifdef VEGAS
   Vegas(
 #endif
-#ifdef SUAVE 
+#ifdef SUAVE
   Suave(
 #endif
     8,                      // (int) dimensions of the integrated volume
@@ -117,17 +117,17 @@ double MEWeight::ComputeWeight(double &error){
     0.,                     // (double) requested absolute accuracy /-> error < max(rel*value,abs)
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
-    0,                  // (int) minimum number of integrand evaluations
-    750000,                  // (int) maximum number of integrand evaluations (approx.!)
+    0,                      // (int) minimum number of integrand evaluations
+    750000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
     50000,                  // (int) number of integrand evaluations per interations (to start)
-    0000,                      // (int) increase in number of integrand evaluations per interations
-    5000,                   // (int) batch size for sampling
+    0,                      // (int) increase in number of integrand evaluations per interations
+    10000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
     10000,                  // (int) number of new integrand evaluations in each subdivision
-    0,                    // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
+    0,                      // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
     4,                      // (int) exponent in the norm used to compute fluctuations of a sample
 #endif
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
@@ -146,11 +146,14 @@ double MEWeight::ComputeWeight(double &error){
 
   //cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
   //mycount = 0;
+  
+  /*mcResult /= 1e25;
+  error /= 1e25;*/
 
   cout << " mcResult= " << mcResult << " +- " << error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl << endl;
 
   //myEvent->writeHists();
-
+ 
   /*if(myEvent->GetTTbar()->Integral()){
     myEvent->GetTTbar()->Scale(1./myEvent->GetTTbar()->Integral());
     myEvent->GetTTbar()->SetEntries(1);

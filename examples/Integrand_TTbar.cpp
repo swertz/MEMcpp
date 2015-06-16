@@ -365,5 +365,5 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 
-  return Value;
+  return Value/**1e25*/;
 }
