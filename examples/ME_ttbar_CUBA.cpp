@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 
   outTree->Write();
   //myWeight->WriteHist();
-  delete myWeight; myWeight = NULL;
-  delete outFile; outFile = NULL;
+  delete myWeight; myWeight = nullptr;
+  delete outFile; outFile = nullptr;
 }
 

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include "TLorentzVector.h"
 #include "TMath.h"
@@ -76,19 +77,19 @@ int ComputeTransformD(const double s13, const double s134, const double s25, con
   // a11 E1^2 + a22 E2^2 + a12 E1E2 + a10 E1 + a01 E2 + a00 = 0
   // id. with bij
 
-  const double a11 = -1 + ( pow(alpha1,2.) + pow(alpha2,2.) + pow(alpha3,2.) );
-  const double a22 = pow(beta1,2.) + pow(beta2,2.) + pow(beta3,2.);
+  const double a11 = -1 + ( SQ(alpha1) + SQ(alpha2) + SQ(alpha3) );
+  const double a22 = SQ(beta1) + SQ(beta2) + SQ(beta3);
   const double a12 = 2.*( alpha1*beta1 + alpha2*beta2 + alpha3*beta3 );
   const double a10 = 2.*( alpha1*gamma1 + alpha2*gamma2 + alpha3*gamma3 );
   const double a01 = 2.*( beta1*gamma1 + beta2*gamma2 + beta3*gamma3 );
-  const double a00 = pow(gamma1,2.) + pow(gamma2,2.) + pow(gamma3,2.);
+  const double a00 = SQ(gamma1) + SQ(gamma2) + SQ(gamma3);
 
-  const double b11 = pow(alpha5,2.) + pow(alpha6,2.) + pow(alpha4,2.);
-  const double b22 = -1 + ( pow(beta5,2.) + pow(beta6,2.) + pow(beta4,2.) );
+  const double b11 = SQ(alpha5) + SQ(alpha6) + SQ(alpha4);
+  const double b22 = -1 + ( SQ(beta5) + SQ(beta6) + SQ(beta4) );
   const double b12 = 2.*( alpha5*beta5 + alpha6*beta6 + alpha4*beta4 );
   const double b10 = 2.*( alpha5*gamma5 + alpha6*gamma6 + alpha4*gamma4 );
   const double b01 = 2.*( beta5*gamma5 + beta6*gamma6 + beta4*gamma4 );
-  const double b00 = pow(gamma5,2.) + pow(gamma6,2.) + pow(gamma4,2.);
+  const double b00 = SQ(gamma5) + SQ(gamma6) + SQ(gamma4);
 
   // Find the intersection of the 2 conics (at most 4 real solutions for (E1,E2))
   vector<double> E1, E2;
@@ -209,14 +210,14 @@ double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s
                E2*(p34z*p3y*p56x - p34y*p3z*p56x - p34z*p3x*p56y + 
                   p34x*p3z*p56y))*p5z);
                   
-    inv_jac *= 8.*16.*pow(TMath::Pi()*sqrt_s,2.);
+    inv_jac *= 8.*16.*SQ(TMath::Pi()*sqrt_s);
 
 	//std::cout << "jac=" << abs(jac) << std::endl;
 	
-	if(TMath::Abs(inv_jac) < INV_JAC_MIN){
+	if(abs(inv_jac) < INV_JAC_MIN){
         std::cout << "Warning: jacobian is close to zero!" << std::endl;
 		return -1.;
 	}else
-		return 1./TMath::Abs(inv_jac);
+		return 1./abs(inv_jac);
 }
 

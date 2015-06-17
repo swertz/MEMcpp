@@ -10,11 +10,11 @@ class MEEvent{
   void SetVectors(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
   ~MEEvent();
 
-  inline TLorentzVector GetP3(void) const { return p3; }
-  inline TLorentzVector GetP4(void) const { return p4; }
-  inline TLorentzVector GetP5(void) const { return p5; }
-  inline TLorentzVector GetP6(void) const { return p6; }
-  inline TLorentzVector GetMet(void) const { return Met; }
+  inline const TLorentzVector& GetP3() const { return p3; }
+  inline const TLorentzVector& GetP4() const { return p4; }
+  inline const TLorentzVector& GetP5() const { return p5; }
+  inline const TLorentzVector& GetP6() const { return p6; }
+  inline const TLorentzVector& GetMet() const { return Met; }
 
   //void writeHists(void);
 

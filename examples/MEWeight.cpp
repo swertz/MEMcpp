@@ -101,13 +101,14 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << "Starting integration..." << endl << endl;
 
-  //cubacores(0, 0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  cubacores(0, 0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
 #ifdef VEGAS
-  Vegas(
+  Vegas
 #endif
 #ifdef SUAVE
-  Suave(
+  Suave
 #endif
+  (
     8,                      // (int) dimensions of the integrated volume
     1,                      // (int) dimensions of the integrand
     (integrand_t) CUBAIntegrand,  // (integrand_t) integrand (cast to integrand_t)
@@ -126,9 +127,9 @@ double MEWeight::ComputeWeight(double &error){
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
-    10000,                  // (int) number of new integrand evaluations in each subdivision
+    50000,                  // (int) number of new integrand evaluations in each subdivision
     0,                      // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
-    4,                      // (int) exponent in the norm used to compute fluctuations of a sample
+    2,                      // (int) exponent in the norm used to compute fluctuations of a sample
 #endif
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
     NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
@@ -143,12 +144,6 @@ double MEWeight::ComputeWeight(double &error){
   );
   
   cout << "Integration done." << endl;
-
-  //cout << "Status: " << nfail << ", nr. fails: " << mycount << endl;
-  //mycount = 0;
-  
-  /*mcResult /= 1e25;
-  error /= 1e25;*/
 
   cout << " mcResult= " << mcResult << " +- " << error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl << endl;
 
@@ -169,11 +164,11 @@ double MEWeight::ComputeWeight(double &error){
 
 MEWeight::~MEWeight(){
   cout << "Deleting PDF" << endl;
-  delete pdf; pdf = NULL;
+  delete pdf; pdf = nullptr;
   cout << "Deleting myEvent" << endl;
-  delete myEvent; myEvent = NULL;
+  delete myEvent; myEvent = nullptr;
   cout << "Deleting myTF" << endl;
-  delete myTF; myTF = NULL;
+  delete myTF; myTF = nullptr;
   //cout << "Deleting hst_TTbar" << endl;
   //delete hst_TTbar; hst_TTbar = NULL;
   /*delete hst_Pt; hst_Pt = NULL;
@@ -184,7 +179,7 @@ MEWeight::~MEWeight(){
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
-  //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << endl;
+  //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << "," << Xarg[4] << "," << Xarg[5] << "," << Xarg[6] << "," << Xarg[7] << "]" << endl;
   
   MEWeight* myWeight = (MEWeight*) inputs;
   *Value = myWeight->Integrand(Xarg, weight);
