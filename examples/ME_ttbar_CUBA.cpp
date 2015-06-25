@@ -10,14 +10,14 @@
 #include "TClonesArray.h"
 
 #include "MEWeight.h"
+#include "utils.h"
+#include "binnedTF.h"
 
 #define BINNING 1750
 #define START 250
 #define STOP 2000
 
 using namespace std;
-
-//int mycount = 0, count_wgt = 0, count_perm=1;
 
 int main(int argc, char *argv[])
 {
@@ -52,15 +52,20 @@ int main(int argc, char *argv[])
   outTree->Branch("Weighted_TT_cpp", &Weighted_TT_cpp);
   outTree->Branch("Weight_TT_cpp_time", &time);
 
+  double mTruth, mAverage, mMaxL;
+  outTree->Branch("MTTbar_MCTruth", &mTruth);
+  outTree->Branch("MTTbar_DMEMAverage", &mAverage);
+  outTree->Branch("MTTbar_DMEMMaxL", &mMaxL);
+
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
   
-  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1", fileTF);
-  myWeight->AddTF("electron", "Binned_Egen_DeltaE_Norm_ele");
-  myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
-  myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
+  MEWeight<BinnedTF*>* myWeight = new MEWeight<BinnedTF*>("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1");
+  myWeight->GetTF()->DefineComponent(fileTF, "electron", "Binned_Egen_DeltaE_Norm_ele");
+  myWeight->GetTF()->DefineComponent(fileTF, "muon", "Binned_Egen_DeltaE_Norm_muon");
+  myWeight->GetTF()->DefineComponent(fileTF, "jet", "Binned_Egen_DeltaE_Norm_jet");
 
-  //TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", 250, 2000, 1750);
+  TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", 1750, 250, 2000);
 
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event
@@ -112,15 +117,15 @@ int main(int argc, char *argv[])
   
     TStopwatch chrono;
     chrono.Start();
-
-    //truth_TTbar->Fill( (gen_ep + gen_b + gen_mum + gen_bbar + gen_Met).M() );
+    
+    mTruth = (gen_ep + gen_b + gen_mum + gen_bbar + gen_Met).M();
+    truth_TTbar->Fill(mTruth);
+    cout << "M_ttbar truth: " << mTruth << endl;
 
     for(int permutation = 1; permutation <= 2; permutation++){
 
       //permutation = 1;
 
-      //count_perm = permutation;
-    
       double weight = 0;
       double error = 0;
 
@@ -132,17 +137,25 @@ int main(int argc, char *argv[])
       weight = myWeight->ComputeWeight(error)/2.; 
 
       Weight_TT_cpp += weight;
-      Weight_TT_Error_cpp += pow(error/2,2.);
+      Weight_TT_Error_cpp += SQ(error/2.);
+
+      //break;
     }
 
     time = chrono.CpuTime();
     
-    Weight_TT_Error_cpp = TMath::Sqrt(Weight_TT_Error_cpp);
+    Weight_TT_Error_cpp = sqrt(Weight_TT_Error_cpp);
     Weighted_TT_cpp = true;
 
     cout << "====> Event " << entry << ": weight = " << Weight_TT_cpp << " +- " << Weight_TT_Error_cpp << endl;
     cout << "      CPU time : " << chrono.CpuTime() << "  Real-time : " << chrono.RealTime() << endl;
     cout << "      MadWeight: " << MadWeight << " +- " << MadWeight_Error << endl << endl;
+
+    mAverage = myWeight->GetTempAverage();
+    mMaxL = myWeight->GetTempMaxLikelihood();
+    cout << "      Most likely M_ttbar : " << mMaxL << endl;
+    cout << "      Average M_ttbar     : " << mAverage << endl << endl;
+    myWeight->AddAndResetTempHist();
 
     outTree->Fill();
 
@@ -151,11 +164,12 @@ int main(int argc, char *argv[])
   
   outFile->cd();
 
-  /*truth_TTbar->Scale(1./truth_TTbar->Integral());
-  truth_TTbar->Write();*/
+  truth_TTbar->Scale(1./truth_TTbar->Integral());
+  truth_TTbar->Write();
+  myWeight->WriteHist();
 
   outTree->Write();
-  //myWeight->WriteHist();
+  delete truth_TTbar; truth_TTbar = nullptr;
   delete myWeight; myWeight = nullptr;
   delete outFile; outFile = nullptr;
 }

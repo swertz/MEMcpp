@@ -15,8 +15,10 @@
 #include "transferFunction.h"
 #include "MEEvent.h"
 
+template <typename tfType>
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight);
 
+template <typename tfType>
 class MEWeight{
   public:
 
@@ -28,24 +30,25 @@ class MEWeight{
   double ComputeWeight(double &error);
   MEEvent* GetEvent();
   void SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
-  void AddTF(const std::string particleName, const std::string histName);
+  TransferFunction<tfType>* GetTF(){ return myTF; }
 
-  //void WriteHist();
+  void WriteHist();
+  double GetTempAverage();
+  double GetTempMaxLikelihood();
+  void AddAndResetTempHist();
 
-  MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF);
+  MEWeight(const std::string paramCardPath, const std::string pdfName);
   ~MEWeight();
 
   private:
 
-  /*TH1D* hst_TTbar;
-  TH1D* hst_Pt;
-  TH1D* hst_Px;
-  TH1D* hst_Py;*/
+  TH1D* hst_TTbar;
+  TH1D* hst_TTbar_temp;
 
   CPPProcess process;
   LHAPDF::PDF* pdf;
   MEEvent* myEvent;
-  TransferFunction* myTF;
+  TransferFunction<tfType>* myTF;
 };
 
 #endif

@@ -19,7 +19,8 @@
 
 using namespace std;
 
-double MEWeight::Integrand(const double* Xarg, const double *weight){
+template <typename tfType>
+double MEWeight<tfType>::Integrand(const double* Xarg, const double *weight){
   double Value = 0.;
 
   for(int i=0; i<4; ++i){
@@ -189,7 +190,10 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     cout << "W+ mass=" << (sqrt(s13)-p13.M())/p13.M() << endl;
     cout << "Top mass=" << (sqrt(s134)-p134.M())/p134.M() << endl;
     cout << "W- mass=" << (sqrt(s25)-p25.M())/p25.M() << endl;
-    cout << "Anti-top mass=" << (sqrt(s256)-p256.M())/p256.M() << endl << endl;*/
+    cout << "Anti-top mass=" << (sqrt(s256)-p256.M())/p256.M() << endl;
+    cout << "Neutrino mass=" << p1.M() << endl;
+    cout << "Neutrino mass=" << p2.M() << endl;
+    cout << "Conservation of impulsion: (" << tot.E() << ", " << tot.Px() << ", " << tot.Py() << "," << tot.Pz() << ")" << endl << endl;*/
     
     /*cout << "Electron (E,Px,Py,Pz) = ";
     cout << p3.E() << "," << p3.Px() << "," << p3.Py() << "," << p3.Pz() << endl;
@@ -305,17 +309,8 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     i += countEqualSol - 1;
     countSol += countEqualSol;
     
-    //myEvent->GetTTbar()->Fill(tot.M(), *weight * (double)countEqualSol * thisSolResult);
+    myEvent->GetTTbar()->Fill(tot.M(), *weight * (double)countEqualSol * thisSolResult);
   }
-
-  if(Value == 0.){
-    //mycount++;
-    //cout << "Zero!" << endl;
-    //return 0;
-  }
-
-  // ### FOR NWA
-  //double flatterJac = pow(TMath::Pi(),4.) * (M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T);
 
   //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 

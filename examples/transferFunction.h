@@ -6,17 +6,16 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "TFile.h"
-
 #include "binnedTF.h"
 
+template <typename tfType>
 class TransferFunction{
   public:
 
-  TransferFunction(const std::string file);
+  //TransferFunction(const std::string file);
   ~TransferFunction();
 
-  void DefineComponent(const std::string particleName, const std::string histName);
+  void DefineComponent(const std::string fileName, const std::string particleName, const std::string histName);
 
   inline double Evaluate(const std::string particleName, const double Erec, const double Egen);
   inline double GetDeltaRange(const std::string particleName, const double Erec);
@@ -25,12 +24,11 @@ class TransferFunction{
 
   private:
 
-  TFile* _file;
-
-  std::map< std::string, BinnedTF* > _TF;
+  std::map< std::string, tfType > _TF;
 };
 
-inline double TransferFunction::Evaluate(const std::string particleName, const double Erec, const double Egen){
+template <typename tfType>
+inline double TransferFunction<tfType>::Evaluate(const std::string particleName, const double Erec, const double Egen){
   // We might want to avoid to check this every time, since it might slow things down too much
   /*if( _TF.find(particleName) == _TF.end() ){
     std::cerr << "Error: TF component for " << particleName << " is not defined!" << std::endl;
@@ -40,7 +38,8 @@ inline double TransferFunction::Evaluate(const std::string particleName, const d
   return _TF[particleName]->Evaluate(Erec, Egen);
 }
 
-inline double TransferFunction::GetDeltaRange(const std::string particleName, const double Erec){
+template <typename tfType>
+inline double TransferFunction<tfType>::GetDeltaRange(const std::string particleName, const double Erec){
   // We might want to avoid to check this every time, since it might slow things down too much
   /*if( _TF.find(particleName) == _TF.end() ){
     std::cerr << "Error: TF component for " << particleName << " is not defined!" << std::endl;
@@ -50,7 +49,8 @@ inline double TransferFunction::GetDeltaRange(const std::string particleName, co
   return _TF[particleName]->GetDeltaRange(Erec);
 }
 
-inline double TransferFunction::GetDeltaMin(const std::string particleName, const double Erec){
+template <typename tfType>
+inline double TransferFunction<tfType>::GetDeltaMin(const std::string particleName, const double Erec){
   // We might want to avoid to check this every time, since it might slow things down too much
   /*if( _TF.find(particleName) == _TF.end() ){
     std::cerr << "Error: TF component for " << particleName << " is not defined!" << std::endl;
@@ -60,7 +60,8 @@ inline double TransferFunction::GetDeltaMin(const std::string particleName, cons
   return _TF[particleName]->GetDeltaMin(Erec);
 }
 
-inline double TransferFunction::GetDeltaMax(const std::string particleName, const double Erec){
+template <typename tfType>
+inline double TransferFunction<tfType>::GetDeltaMax(const std::string particleName, const double Erec){
   // We might want to avoid to check this every time, since it might slow things down too much
   /*if( _TF.find(particleName) == _TF.end() ){
     std::cerr << "Error: TF component for " << particleName << " is not defined!" << std::endl;

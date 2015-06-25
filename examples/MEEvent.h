@@ -2,6 +2,7 @@
 #define _INC_MEEVENT
 
 #include "TLorentzVector.h"
+#include "TH1D.h"
 
 class MEEvent{
   public:
@@ -16,15 +17,15 @@ class MEEvent{
   inline const TLorentzVector& GetP6() const { return p6; }
   inline const TLorentzVector& GetMet() const { return Met; }
 
-  //void writeHists(void);
+  void writeHists(void);
 
-  //TH1D* GetTTbar();
+  TH1D* GetTTbar();
   
   private:
 
   TLorentzVector p3, p4, p5, p6, Met;
 
-  //TH1D *hst_TTbar;
+  TH1D *hst_TTbar;
 };
 
 #endif

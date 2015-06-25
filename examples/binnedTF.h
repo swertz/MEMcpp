@@ -10,7 +10,7 @@
 class BinnedTF{
   public:
 
-  BinnedTF(const std::string particleName, const std::string histName, TFile* file);
+  BinnedTF(const std::string file, const std::string particleName, const std::string histName);
   ~BinnedTF();
   inline double Evaluate(const double Erec, const double Egen) const;
   inline double GetDeltaRange(const double Erec) const;
@@ -19,6 +19,7 @@ class BinnedTF{
 
   private:
 
+  TFile* _file;
   std::string _particleName;
   double _histDeltaMin, _histDeltaMax;
   double _deltaMin, _deltaMax, _deltaRange;

@@ -1,10 +1,13 @@
 #include "TLorentzVector.h"
+#include "TH1D.h"
 
 #include "MEEvent.h"
 
-MEEvent::MEEvent(){
-  //hst_TTbar = new TH1D("test_TTbar", "test_TTbar", BINNING, START, STOP); 
-}
+#define BINNING 1750
+#define START 250
+#define STOP 2000
+
+MEEvent::MEEvent() : hst_TTbar( new TH1D("test_TTbar", "test_TTbar", BINNING, START, STOP) ) {}
 
 void MEEvent::SetVectors(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
   p3 = ep;
@@ -13,23 +16,24 @@ void MEEvent::SetVectors(const TLorentzVector ep, const TLorentzVector mum, cons
   p6 = bbar;
   Met = met;
 
-  /*if(hst_TTbar)
-    hst_TTbar->Reset();*/
+  if(hst_TTbar)
+    hst_TTbar->Reset();
 }
 
 MEEvent::~MEEvent(){
-  //delete hst_TTbar; hst_TTbar = NULL;
+  delete hst_TTbar; hst_TTbar = nullptr;
 }
 
-/*TH1D* MEEvent::GetTTbar(){
+TH1D* MEEvent::GetTTbar(){
   return hst_TTbar;
-}*/
+}
 
-/*void MEEvent::writeHists(void){
-  TCanvas *c = new TCanvas(TString("Mttbar")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
-  c->cd();
-  hst_TTbar->Draw();
-  c->Write();
-  c->Print(TString("plots/Mttbar_")+SSTR(count_wgt)+"_"+SSTR(count_perm)+".png");
-  delete c; c = 0;
-}*/
+void MEEvent::writeHists(void){
+  //TCanvas *c = new TCanvas(TString("Mttbar")+"_"+SSTR(count_wgt)+"_"+SSTR(count_perm),"Canvas for plotting",600,600);
+  //c->cd();
+  //hst_TTbar->Draw();
+  //c->Write();
+  //c->Print(TString("plots/Mttbar_")+SSTR(count_wgt)+"_"+SSTR(count_perm)+".png");
+  //delete c; c = 0;
+  hst_TTbar->Write();
+}

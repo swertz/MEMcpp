@@ -2,37 +2,38 @@
 #include <iostream>
 #include <map>
 
-#include "TFile.h"
+//#include "TFile.h"
 
 #include "transferFunction.h"
 #include "binnedTF.h"
 
-using namespace std;
-
+/*template <typename tfType>
 TransferFunction::TransferFunction(const std::string file){
   _file = new TFile(file.c_str(), "READ");
   
   if( _file->IsZombie() ){
-    cerr << "Error opening TF file " << file << ".\n";
+    std::cerr << "Error opening TF file " << file << ".\n";
     exit(1);
   }
-}
+}*/
 
-TransferFunction::~TransferFunction(){
+template <typename tfType>
+TransferFunction<tfType>::~TransferFunction(){
   for(auto &i: _TF){
     delete i.second; i.second = nullptr;
   }
-  delete _file; _file = nullptr;
+  //delete _file; _file = nullptr;
 }
   
-void TransferFunction::DefineComponent(const std::string particleName, const std::string histName){
+template <typename tfType>
+void TransferFunction<tfType>::DefineComponent(const std::string fileName, const std::string particleName, const std::string histName){
   if( _TF.find(particleName) != _TF.end() ){
-    cerr << "Error: TF component for " << particleName << " is already defined!" << endl;
+    std::cerr << "Error: TF component for " << particleName << " is already defined!" << std::endl;
     exit(1);
   }
 
-  cout << "Adding TF component for " << particleName << " from histogram " << histName << ".\n";
+  std::cout << "Adding TF component for " << particleName << " from histogram " << histName << ".\n";
 
-  _TF[particleName] = new BinnedTF(particleName, histName, _file);
+  _TF[particleName] = new tfType(fileName, particleName, histName);
 }
 
