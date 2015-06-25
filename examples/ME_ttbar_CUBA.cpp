@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
   
-  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph4/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1", fileTF);
+  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum_NOPOW/Cards/param_card.dat", "cteq6l1", fileTF);
   myWeight->AddTF("electron", "Binned_Egen_DeltaE_Norm_ele");
   myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
   myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");

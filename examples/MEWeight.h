@@ -35,7 +35,7 @@ class MEWeight{
   double GetTempMaxLikelihood();
   void AddAndResetTempHist();
 
-  MEWeight(const std::string paramCardPath, const std::string pdfName);
+  MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF);
   ~MEWeight();
 
   private:

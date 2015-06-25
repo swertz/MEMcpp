@@ -27,7 +27,7 @@
 
 using namespace std;
 
-MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName) :
+MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF) :
   hst_TTbar( new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP) ),
   hst_TTbar_temp( new TH1D("DMEM_TTbar_temp", "DMEM  M_{tt}", BINNING, START, STOP) ),
   myEvent( new MEEvent() ),
@@ -196,7 +196,7 @@ int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double 
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << "," << Xarg[4] << "," << Xarg[5] << "," << Xarg[6] << "," << Xarg[7] << "]" << endl;
   
-  MEWeight* myWeight = dynamic_cast<MEWeight*>(inputs);
+  MEWeight* myWeight = static_cast<MEWeight*>(inputs);
   *Value = myWeight->Integrand(Xarg, weight);
 
   return 0;
