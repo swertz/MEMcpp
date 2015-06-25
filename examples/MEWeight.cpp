@@ -27,24 +27,23 @@
 
 using namespace std;
 
-template <typename tfType>
-MEWeight<tfType>::MEWeight(const std::string paramCardPath, const std::string pdfName) :
+MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName) :
   hst_TTbar( new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP) ),
   hst_TTbar_temp( new TH1D("DMEM_TTbar_temp", "DMEM  M_{tt}", BINNING, START, STOP) ),
   myEvent( new MEEvent() ),
-  myTF( new TransferFunction<tfType>() )
+  myTF( new TransferFunction(fileTF) )
   {
 
   cout << "Initializing Matrix Element computation with:" << endl;
   cout << "Parameter card " << paramCardPath << endl;
   cout << "PDF " << pdfName << endl;
+  cout << "TF file " << fileTF << endl;
 
   process.initProc(paramCardPath);
   pdf = LHAPDF::mkPDF(pdfName, 0);
 }
 
-template <typename tfType>
-double MEWeight<tfType>::ComputePdf(const int pid, const double x, const double q2){
+double MEWeight::ComputePdf(const int pid, const double x, const double q2){
   // return f(pid,x,q2)
   if(x <= 0 || x >= 1 || q2 <= 0){
     cout << "WARNING: PDF x or Q^2 value out of bounds!" << endl;
@@ -54,18 +53,19 @@ double MEWeight<tfType>::ComputePdf(const int pid, const double x, const double 
   }
 }
 
-template <typename tfType>
-MEEvent* MEWeight<tfType>::GetEvent(){
+MEEvent* MEWeight::GetEvent(){
   return myEvent;
 }
 
-template <typename tfType>
-void MEWeight<tfType>::SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
+void MEWeight::SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
   myEvent->SetVectors(ep, mum, b, bbar, met);
 }
 
-template <typename tfType>
-void MEWeight<tfType>::WriteHist(){
+void MEWeight::AddTF(const std::string particleName, const std::string histName){
+    myTF->DefineComponent(particleName, histName);
+}
+
+void MEWeight::WriteHist(){
 
   if(hst_TTbar->Integral())
     hst_TTbar->Scale(1./hst_TTbar->Integral());
@@ -79,18 +79,15 @@ void MEWeight<tfType>::WriteHist(){
   //delete c; c = 0;
 }
 
-template <typename tfType>
-double MEWeight<tfType>::GetTempAverage(){
+double MEWeight::GetTempAverage(){
   return hst_TTbar_temp->GetMean();
 }
 
-template <typename tfType>
-double MEWeight<tfType>::GetTempMaxLikelihood(){
+double MEWeight::GetTempMaxLikelihood(){
   return hst_TTbar_temp->GetBinCenter(hst_TTbar_temp->GetMaximumBin());
 }
 
-template <typename tfType>
-void MEWeight<tfType>::AddAndResetTempHist(){
+void MEWeight::AddAndResetTempHist(){
   if(hst_TTbar_temp->Integral() != 0.){
     hst_TTbar_temp->Scale(1./hst_TTbar_temp->Integral());
     hst_TTbar_temp->SetEntries(1);
@@ -99,8 +96,7 @@ void MEWeight<tfType>::AddAndResetTempHist(){
   hst_TTbar_temp->Reset();
 }
 
-template <typename tfType>
-double MEWeight<tfType>::ComputeWeight(double &error){
+double MEWeight::ComputeWeight(double &error){
   
   cout << "Initializing integration..." << endl;
 
@@ -131,7 +127,7 @@ double MEWeight<tfType>::ComputeWeight(double &error){
   (
     8,                      // (int) dimensions of the integrated volume
     1,                      // (int) dimensions of the integrand
-    (integrand_t) CUBAIntegrand<tfType>,  // (integrand_t) integrand (cast to integrand_t)
+    (integrand_t) CUBAIntegrand,  // (integrand_t) integrand (cast to integrand_t)
     (void*) this,           // (void*) pointer to additional arguments passed to integrand
     1,                      // (int) maximum number of points given the integrand in each invocation (=> SIMD) ==> PS points = vector of sets of points (x[ndim][nvec]), integrand returns vector of vector values (f[ncomp][nvec])
     0.005,                  // (double) requested relative accuracy  /
@@ -183,8 +179,7 @@ double MEWeight<tfType>::ComputeWeight(double &error){
   return mcResult;
 }
 
-template <typename tfType>
-MEWeight<tfType>::~MEWeight(){
+MEWeight::~MEWeight(){
   cout << "Deleting PDF" << endl;
   delete pdf; pdf = nullptr;
   cout << "Deleting myEvent" << endl;
@@ -196,13 +191,12 @@ MEWeight<tfType>::~MEWeight(){
   delete hst_TTbar_temp; hst_TTbar_temp = nullptr;
 }
 
-template <typename tfType>
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << "," << Xarg[4] << "," << Xarg[5] << "," << Xarg[6] << "," << Xarg[7] << "]" << endl;
   
-  MEWeight<tfType>* myWeight = dynamic_cast< MEWeight<tfType>* >(inputs);
+  MEWeight* myWeight = dynamic_cast<MEWeight*>(inputs);
   *Value = myWeight->Integrand(Xarg, weight);
 
   return 0;

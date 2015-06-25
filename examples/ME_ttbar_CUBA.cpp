@@ -11,7 +11,6 @@
 
 #include "MEWeight.h"
 #include "utils.h"
-#include "binnedTF.h"
 
 #define BINNING 1750
 #define START 250
@@ -60,10 +59,10 @@ int main(int argc, char *argv[])
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
   
-  MEWeight<BinnedTF*>* myWeight = new MEWeight<BinnedTF*>("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1");
-  myWeight->GetTF()->DefineComponent(fileTF, "electron", "Binned_Egen_DeltaE_Norm_ele");
-  myWeight->GetTF()->DefineComponent(fileTF, "muon", "Binned_Egen_DeltaE_Norm_muon");
-  myWeight->GetTF()->DefineComponent(fileTF, "jet", "Binned_Egen_DeltaE_Norm_jet");
+  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph4/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1", fileTF);
+  myWeight->AddTF("electron", "Binned_Egen_DeltaE_Norm_ele");
+  myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
+  myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
   TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", 1750, 250, 2000);
 

@@ -19,8 +19,7 @@
 
 using namespace std;
 
-template <typename tfType>
-double MEWeight<tfType>::Integrand(const double* Xarg, const double *weight){
+double MEWeight::Integrand(const double* Xarg, const double *weight){
   double Value = 0.;
 
   for(int i=0; i<4; ++i){

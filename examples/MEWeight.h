@@ -15,10 +15,8 @@
 #include "transferFunction.h"
 #include "MEEvent.h"
 
-template <typename tfType>
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight);
 
-template <typename tfType>
 class MEWeight{
   public:
 
@@ -30,7 +28,7 @@ class MEWeight{
   double ComputeWeight(double &error);
   MEEvent* GetEvent();
   void SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
-  TransferFunction<tfType>* GetTF(){ return myTF; }
+  void AddTF(const std::string particleName, const std::string histName);
 
   void WriteHist();
   double GetTempAverage();
@@ -48,7 +46,7 @@ class MEWeight{
   CPPProcess process;
   LHAPDF::PDF* pdf;
   MEEvent* myEvent;
-  TransferFunction<tfType>* myTF;
+  TransferFunction* myTF;
 };
 
 #endif
