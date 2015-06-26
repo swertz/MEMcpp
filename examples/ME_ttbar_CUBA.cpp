@@ -11,13 +11,7 @@
 
 #include "MEWeight.h"
 
-#define BINNING 1750
-#define START 250
-#define STOP 2000
-
 using namespace std;
-
-//int mycount = 0, count_wgt = 0, count_perm=1;
 
 int main(int argc, char *argv[])
 {
@@ -60,8 +54,6 @@ int main(int argc, char *argv[])
   myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
   myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
-  //TH1D* truth_TTbar = new TH1D("MTruth_TTbar", "M_{tt}  Truth", 250, 2000, 1750);
-
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event
     chain.GetEntry(entry);
@@ -70,19 +62,12 @@ int main(int argc, char *argv[])
 
     GenParticle *gen;
 
-    //int count_ep=0, count_mum=0;
-
     for (int i = 0; i < branchGen->GetEntries(); i++){
       gen = (GenParticle*) branchGen->At(i);
       //cout << "Status=" << gen->Status << ", PID=" << gen->PID << ", E=" << gen->P4().E() << endl;
       if (gen->Status == 1){
-        if (gen->PID == -11){
-          gen_ep = gen->P4();
-          //count_ep++;
-        }else if (gen->PID == 13){
-          gen_mum = gen->P4();
-          //count_mum++;
-        }
+        if (gen->PID == -11) gen_ep = gen->P4();
+        else if (gen->PID == 13) gen_mum = gen->P4();
         else if (gen->PID == 12) gen_Met += gen->P4();
         else if (gen->PID == -14) gen_Met += gen->P4();
         else if (gen->PID == 5) gen_b = gen->P4();
@@ -90,10 +75,6 @@ int main(int argc, char *argv[])
       }
     }
 
-    //if(count_ep != 1 || count_mum != 1)
-    //  continue;
-    //gen_Met.SetPz(0.);
-  
     cout << "From MadGraph:" << endl;
     cout << "Electron" << endl;
     cout << gen_ep.E() << "," << gen_ep.Px() << "," << gen_ep.Py() << "," << gen_ep.Pz() << endl;
@@ -113,14 +94,7 @@ int main(int argc, char *argv[])
     TStopwatch chrono;
     chrono.Start();
 
-    //truth_TTbar->Fill( (gen_ep + gen_b + gen_mum + gen_bbar + gen_Met).M() );
-
     for(int permutation = 1; permutation <= 2; permutation++){
-
-      //permutation = 1;
-
-      //count_perm = permutation;
-    
       double weight = 0;
       double error = 0;
 
@@ -145,17 +119,11 @@ int main(int argc, char *argv[])
     cout << "      MadWeight: " << MadWeight << " +- " << MadWeight_Error << endl << endl;
 
     outTree->Fill();
-
-    //count_wgt++;
   }
   
   outFile->cd();
-
-  /*truth_TTbar->Scale(1./truth_TTbar->Integral());
-  truth_TTbar->Write();*/
-
   outTree->Write();
-  //myWeight->WriteHist();
+  
   delete myWeight; myWeight = nullptr;
   delete outFile; outFile = nullptr;
 }

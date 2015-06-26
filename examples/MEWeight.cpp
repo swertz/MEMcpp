@@ -34,11 +34,6 @@ MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, c
   pdf = LHAPDF::mkPDF(pdfName, 0);
   myEvent = new MEEvent();
   myTF = new TransferFunction(fileTF);
-
-  //hst_TTbar = new TH1D("DMEM_TTbar", "DMEM  M_{tt}", BINNING, START, STOP);
-  /*hst_Pt = new TH1D("Pt", "Pt_{rec} - Pt_{gen}", 100, -150, 150);
-  hst_Px = new TH1D("Px", "Px_{rec} - Px_{gen}", 100, -150, 150);
-  hst_Py = new TH1D("Py", "Py_{rec} - Py_{gen}", 100, -150, 150);*/
 }
 
 double MEWeight::ComputePdf(const int pid, const double x, const double q2){
@@ -62,23 +57,6 @@ void MEWeight::SetEvent(const TLorentzVector ep, const TLorentzVector mum, const
 void MEWeight::AddTF(const std::string particleName, const std::string histName){
   myTF->DefineComponent(particleName, histName);
 }
-
-/*void MEWeight::WriteHist(){
-
-  hst_TTbar->Scale(1./hst_TTbar->Integral());
-
-  TCanvas *c = new TCanvas("DMEM_TTbar", "Canvas for plotting", 600, 600);
-  c->cd();
-  hst_TTbar->Draw();
-  //c->Write();
-  hst_TTbar->Write();
-  //c->Print("plots/DMEM_ttbar.png", "png");
-  //delete c; c = 0;*/
-  /*hst_Pt->Write();
-  hst_Px->Write();
-  hst_Py->Write();
-
-}*/
 
 double MEWeight::ComputeWeight(double &error){
   
@@ -119,11 +97,11 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    750000,                 // (int) maximum number of integrand evaluations (approx.!)
+    350000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
-    50000,                  // (int) number of integrand evaluations per interations (to start)
+    20000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
-    25000,                   // (int) batch size for sampling
+    10000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
@@ -147,14 +125,6 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << " mcResult= " << mcResult << " +- " << error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl << endl;
 
-  //myEvent->writeHists();
- 
-  /*if(myEvent->GetTTbar()->Integral()){
-    myEvent->GetTTbar()->Scale(1./myEvent->GetTTbar()->Integral());
-    myEvent->GetTTbar()->SetEntries(1);
-    hst_TTbar->Add(myEvent->GetTTbar());
-  }*/
-  
   if(std::isnan(error))
   error = 0.;
   if(std::isnan(mcResult))
@@ -169,11 +139,6 @@ MEWeight::~MEWeight(){
   delete myEvent; myEvent = nullptr;
   cout << "Deleting myTF" << endl;
   delete myTF; myTF = nullptr;
-  //cout << "Deleting hst_TTbar" << endl;
-  //delete hst_TTbar; hst_TTbar = NULL;
-  /*delete hst_Pt; hst_Pt = NULL;
-  delete hst_Px; hst_Px = NULL;
-  delete hst_Py; hst_Py = NULL;*/
 }
 
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){

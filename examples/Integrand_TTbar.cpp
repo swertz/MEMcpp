@@ -23,10 +23,8 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   double Value = 0.;
 
   for(int i=0; i<4; ++i){
-    if(Xarg[i] == 1.){
-      //mycount++;
+    if(Xarg[i] == 1.)
       return 0;
-    }
   }
 
   const TLorentzVector p3rec = myEvent->GetP3();
@@ -34,6 +32,8 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   const TLorentzVector p5rec = myEvent->GetP5();
   const TLorentzVector p6rec = myEvent->GetP6();
   const TLorentzVector Met = myEvent->GetMet();
+
+  ///// Transfer functions
 
   double TFValue = 1.;
 
@@ -55,8 +55,6 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   if(p5DeltaRange != 0.)
     TFValue *= myTF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5.M());
 
-  //// NO conservation of momentum
-
   TLorentzVector p4 = p4rec;
   const double E4rec = p4rec.E();
   const double p4DeltaRange = myTF->GetDeltaRange("jet", E4rec);
@@ -75,51 +73,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   if(p6DeltaRange != 0.)
     TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6.M());
 
-  //// YES conservation of momentum
-  
-  /*TLorentzVector pVisTotRec = p3rec + p4rec + p5rec + p6rec;
-  
-  std::vector<double> c4, c6;
-  solve2Linear(p4rec.Px(), p6rec.Px(), - pVisTotRec.Px() + p3.Px() + p5.Px(),
-               p4rec.Py(), p6rec.Py(), - pVisTotRec.Py() + p3.Py() + p5.Py(),
-               c4, c6, false);
-
-  if(c4.size() != 1){
-    cout << "Could not satisfy conservation of momentum!" << endl;
-    return 0.;
-  }
-  if(c4.at(0) < 0 || c6.at(0) < 0){
-    cout << "Could not satisfy conservation of momentum!" << endl;
-    return 0.;
-  }
-  
-  //cout << "Px before: " << (pVisTotRec).Px() << ", Px after: " << c6.at(0)*p6rec.Px()+c4.at(0)*p4rec.Px()+(p5+p3).Px() << ", Met Px: " << Met.Px() << endl;
-  //cout << "Py before: " << (pVisTotRec).Py() << ", Py after: " << c6.at(0)*p6rec.Py()+c4.at(0)*p4rec.Py()+(p5+p3).Py() << ", Met Py: " << Met.Py() << endl;
-
-  TLorentzVector p4 = p4rec;
-  const double E4rec = p4rec.E();
-  p4.SetPtEtaPhiM(c4.at(0)*p4rec.Pt(), p4rec.Eta(), p4rec.Phi(), p4rec.M());
-  const double E4gen = p4.E();
-  const double p4DeltaRange = myTF->GetDeltaRange("jet", E4rec);
-  if(p4DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange  * dEoverdP(E4gen, p4.M()); 
-
-  //cout << "dEoverdP4 = " << dEoverdP(E4gen, p4.M()) << ", M4 = " << p4.M() << endl;
-
-  TLorentzVector p6 = p6rec;
-  const double E6rec = p6rec.E();
-  p6.SetPtEtaPhiM(c6.at(0)*p6rec.Pt(), p6rec.Eta(), p6rec.Phi(), p6rec.M());
-  const double E6gen = p6.E();
-  const double p6DeltaRange = myTF->GetDeltaRange("jet", E6rec);
-  if(p6DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6.M());*/
-
-  //cout << "dEoverdP6 = " << dEoverdP(E6gen, p6.M()) << ", M6 = " << p6.M() << endl;
-  
-  ////
-  
   //cout << "Final TF = " << TFValue << endl;
-
 
   // We flatten the Breit-Wigners by doing a change of variable for each resonance separately
   // s = M G tan(y) + M^2
@@ -155,11 +109,8 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
   flatterJac /= pow(cos(y1) * cos(y2) * cos(y3) * cos(y4), 2.);
 
-  if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M()){
-    //cout << "Masses too small!" << endl;
-    //mycount++;
+  if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M())
     return 0;
-  }
 
   //cout << "weight = " << *weight << endl;
   
@@ -214,12 +165,8 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
     //cout << "===> Eext=" << ETot << ", Pzext=" << PzTot << ", q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl << endl;
   
-    if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.){
-      //cout << "Fail!" << endl;
-      //mycount++;
+    if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.)
       continue;
-      //break;
-    }
     
     // Compute jacobian from change of variable:
     vector<TLorentzVector> momenta;
@@ -232,9 +179,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     const double jac = computeJacobianD(momenta, SQRT_S);
     if(jac <= 0.){
       cout << "Jac infinite!" << endl;
-      //mycount++;
       continue;
-      //break;
     }
   
     // Compute the Pdfs
@@ -283,7 +228,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     
     // free up memory
     for(unsigned int j = 0; j < p.size(); ++j){
-      delete [] p.at(j); p.at(j) = NULL;
+      delete [] p.at(j); p.at(j) = nullptr;
     }
 
     const double thisSolResult = PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac * flatterJac * TFValue;
@@ -304,18 +249,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     // If we have included the next solutions already, skip them!
     i += countEqualSol - 1;
     countSol += countEqualSol;
-    
-    //myEvent->GetTTbar()->Fill(tot.M(), *weight * (double)countEqualSol * thisSolResult);
   }
-
-  if(Value == 0.){
-    //mycount++;
-    //cout << "Zero!" << endl;
-    //return 0;
-  }
-
-  // ### FOR NWA
-  //double flatterJac = pow(TMath::Pi(),4.) * (M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T);
 
   //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 

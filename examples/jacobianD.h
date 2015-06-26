@@ -10,6 +10,6 @@ int ComputeTransformD(const double s13, const double s134, const double s25, con
                       const TLorentzVector p3, const TLorentzVector p4, const TLorentzVector p5, const TLorentzVector p6, const TLorentzVector Met,
                       std::vector<TLorentzVector> &p1, std::vector<TLorentzVector> &p2);
 
-  double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s);
+double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s);
 
 #endif

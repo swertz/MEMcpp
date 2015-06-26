@@ -30,17 +30,10 @@ class MEWeight{
   void SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met);
   void AddTF(const std::string particleName, const std::string histName);
 
-  //void WriteHist();
-
   MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF);
   ~MEWeight();
 
   private:
-
-  /*TH1D* hst_TTbar;
-  TH1D* hst_Pt;
-  TH1D* hst_Px;
-  TH1D* hst_Py;*/
 
   CPPProcess process;
   LHAPDF::PDF* pdf;

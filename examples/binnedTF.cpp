@@ -7,17 +7,15 @@
 #include "TH2.h"
 #include "TFile.h"
 
-using namespace std;
-
 BinnedTF::BinnedTF(const std::string particleName, const std::string histName, TFile* file) : _particleName(particleName) {
 
   _TF = dynamic_cast<TH2D*>( file->Get(histName.c_str()) );
   if(!_TF){
-    cerr << "Error when defining binned TF for paricle " << particleName << ": unable to retrieve " << histName << " from file " << file->GetPath() << ".\n";
+    std::cerr << "Error when defining binned TF for particle " << particleName << ": unable to retrieve " << histName << " from file " << file->GetPath() << ".\n";
     exit(1);
   }
 
-  cout << "Creating TF component for " << particleName << " from histogram " << histName << ".\n";
+  std::cout << "Creating TF component for " << particleName << " from histogram " << histName << ".\n";
 
   _deltaMin = _TF->GetYaxis()->GetXmin();
   _deltaMax = _TF->GetYaxis()->GetXmax();
@@ -25,7 +23,7 @@ BinnedTF::BinnedTF(const std::string particleName, const std::string histName, T
   _EgenMax = _TF->GetXaxis()->GetXmax();
   _EgenMin = _TF->GetXaxis()->GetXmin();
  
-  cout << "Delta range is " << _deltaRange << ", min. and max. values are " << _EgenMin << ", " <<_EgenMax << endl << endl;
+  std::cout << "Delta range is " << _deltaRange << ", min. and max. values are " << _EgenMin << ", " <<_EgenMax << std::endl << std::endl;
 }
 
 BinnedTF::~BinnedTF(){

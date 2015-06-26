@@ -27,19 +27,19 @@ class BinnedTF{
 };
 
 inline double BinnedTF::Evaluate(const double Erec, const double Egen) const {
-  //cout << "Evaluating TF for particle " << _particleName << ": Erec = " << Erec << ", Egen = " << Egen;
+  //std::cout << "Evaluating TF for particle " << _particleName << ": Erec = " << Erec << ", Egen = " << Egen << std::endl;
   
   double delta = Erec - Egen;
   
   if(Egen < _EgenMin || Egen > _EgenMax || delta > _deltaMax || delta < _deltaMin){
-    //cout << "... Out of range!" << endl;
+    //std::cout << "... Out of range!" << std::endl;
     return 0.;
   }
 
   // Use ROOT's global bin number "feature" for 2-dimensional histograms
   const int bin = _TF->FindFixBin(Egen, delta);
 
-  //cout << ", TF = " << _TF->GetBinContent(bin) << endl;
+  //std::cout << ", TF = " << _TF->GetBinContent(bin) << std::endl;
   return _TF->GetBinContent(bin);
 }
 
