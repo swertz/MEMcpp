@@ -73,7 +73,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   if(p6DeltaRange != 0.)
     TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6gen.M());
 
-  // In the following, we want to use PxPyPzE vectors, since the phase-space integration is done over those variables
+  // In the following, we want to use PxPyPzE vectors, since the change of variables is done over those variables
   ROOT::Math::PxPyPzEVector p3(p3gen);
   ROOT::Math::PxPyPzEVector p4(p4gen);
   ROOT::Math::PxPyPzEVector p5(p5gen);
