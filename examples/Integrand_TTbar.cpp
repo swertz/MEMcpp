@@ -2,7 +2,7 @@
 #include <vector>
 #include <cmath>
 
-#include "TLorentzVector.h"
+#include "Math/Vector4D.h"
 #include "TMath.h"
 
 #include "MEWeight.h"
@@ -27,51 +27,58 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
       return 0;
   }
 
-  const TLorentzVector p3rec = myEvent->GetP3();
-  const TLorentzVector p4rec = myEvent->GetP4();
-  const TLorentzVector p5rec = myEvent->GetP5();
-  const TLorentzVector p6rec = myEvent->GetP6();
-  const TLorentzVector Met = myEvent->GetMet();
+  const ROOT::Math::PtEtaPhiEVector p3rec = myEvent->GetP3();
+  const ROOT::Math::PtEtaPhiEVector p4rec = myEvent->GetP4();
+  const ROOT::Math::PtEtaPhiEVector p5rec = myEvent->GetP5();
+  const ROOT::Math::PtEtaPhiEVector p6rec = myEvent->GetP6();
+  const ROOT::Math::PtEtaPhiEVector RecMet = myEvent->GetMet();
 
   ///// Transfer functions
 
   double TFValue = 1.;
 
-  TLorentzVector p3 = p3rec;
+  ROOT::Math::PtEtaPhiEVector p3gen = p3rec;
   const double E3rec = p3rec.E();
   const double p3DeltaRange = myTF->GetDeltaRange("electron", E3rec);
   const double E3gen = E3rec - myTF->GetDeltaMax("electron", E3rec) + p3DeltaRange * Xarg[4];
   const double pt3gen = sqrt( SQ(E3gen) - SQ(p3rec.M()) ) / cosh(p3rec.Eta());
-  p3.SetPtEtaPhiE(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
+  p3gen.SetCoordinates(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
   if(p3DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3.M());
+    TFValue *= myTF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
 
-  TLorentzVector p5 = p5rec;
+  ROOT::Math::PtEtaPhiEVector p5gen = p5rec;
   const double E5rec = p5rec.E();
   const double p5DeltaRange = myTF->GetDeltaRange("muon", E5rec);
   const double E5gen = E5rec - myTF->GetDeltaMax("muon", E5rec) + p5DeltaRange * Xarg[6];
   const double pt5gen = sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / cosh(p5rec.Eta());
-  p5.SetPtEtaPhiE(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
+  p5gen.SetCoordinates(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
   if(p5DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5.M());
+    TFValue *= myTF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
 
-  TLorentzVector p4 = p4rec;
+  ROOT::Math::PtEtaPhiEVector p4gen = p4rec;
   const double E4rec = p4rec.E();
   const double p4DeltaRange = myTF->GetDeltaRange("jet", E4rec);
   const double E4gen = E4rec - myTF->GetDeltaMax("jet", E4rec) + p4DeltaRange * Xarg[5];
   const double pt4gen = sqrt( SQ(E4gen) - SQ(p4rec.M()) ) / cosh(p4rec.Eta());
-  p4.SetPtEtaPhiE(pt4gen, p4rec.Eta(), p4rec.Phi(), E4gen);
+  p4gen.SetCoordinates(pt4gen, p4rec.Eta(), p4rec.Phi(), E4gen);
   if(p4DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4.M());
+    TFValue *= myTF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4gen.M());
 
-  TLorentzVector p6 = p6rec;
+  ROOT::Math::PtEtaPhiEVector p6gen = p6rec;
   const double E6rec = p6rec.E();
   const double p6DeltaRange = myTF->GetDeltaRange("jet", E6rec);
   const double E6gen = p6rec.E() - myTF->GetDeltaMax("jet", E6rec) + p6DeltaRange * Xarg[7];
   const double pt6gen = sqrt( SQ(E6gen) - SQ(p6rec.M()) ) / cosh(p6rec.Eta());
-  p6.SetPtEtaPhiE(pt6gen, p6rec.Eta(), p6rec.Phi(), E6gen);
+  p6gen.SetCoordinates(pt6gen, p6rec.Eta(), p6rec.Phi(), E6gen);
   if(p6DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6.M());
+    TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6gen.M());
+
+  // In the following, we want to use PxPyPzE vectors, since the phase-space integration is done over those variables
+  ROOT::Math::PxPyPzEVector p3(p3gen);
+  ROOT::Math::PxPyPzEVector p4(p4gen);
+  ROOT::Math::PxPyPzEVector p5(p5gen);
+  ROOT::Math::PxPyPzEVector p6(p6gen);
+  ROOT::Math::PxPyPzEVector Met(RecMet);
 
   //cout << "Final TF = " << TFValue << endl;
 
@@ -114,7 +121,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   //cout << "weight = " << *weight << endl;
   
-  std::vector<TLorentzVector> p1vec, p2vec;
+  std::vector<ROOT::Math::PxPyPzEVector> p1vec, p2vec;
 
   ComputeTransformD(s13, s134, s25, s256,
                     p3, p4, p5, p6, Met,
@@ -124,15 +131,15 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   for(unsigned short i = 0; i < p1vec.size(); ++i){
 
-    const TLorentzVector p1 = p1vec.at(i);
-    const TLorentzVector p2 = p2vec.at(i);
+    const ROOT::Math::PxPyPzEVector p1 = p1vec.at(i);
+    const ROOT::Math::PxPyPzEVector p2 = p2vec.at(i);
 
-    const TLorentzVector p13 = p1 + p3;
-    const TLorentzVector p134 = p1 + p3 + p4;
-    const TLorentzVector p25 = p2 + p5;
-    const TLorentzVector p256 = p2 + p5 + p6;
+    /*const ROOT::Math::PxPyPzEVector p13 = p1 + p3;
+    const ROOT::Math::PxPyPzEVector p134 = p1 + p3 + p4;
+    const ROOT::Math::PxPyPzEVector p25 = p2 + p5;
+    const ROOT::Math::PxPyPzEVector p256 = p2 + p5 + p6;
 
-    /*cout << "Solution " << i << ":" << endl;
+    cout << "Solution " << i << ":" << endl;
     cout << "Input: W+ mass=" << sqrt(s13) << ", Top mass=" << sqrt(s134) << ", W- mass=" << sqrt(s25) << ", Anti-top mass=" << sqrt(s256) << endl;
     cout << "Output: W+ mass=" << p13.M() << ", Top mass=" << p134.M() << ", W- mass=" << p25.M() << ", Anti-top mass=" << p256.M() << endl << endl;
     //cout << "Differences: W+ mass=" << sqrt(s13)-p13.M() << ", Top mass=" << sqrt(s134)-p134.M() << ", W- mass=" << sqrt(s25)-p25.M() << ", Anti-top mass=" << sqrt(s256)-p256.M() << endl << endl;
@@ -155,7 +162,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     cout << "Anti b quark (E,Px,Py,Pz) = ";
     cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;*/
   
-    const TLorentzVector tot = p1 + p2 + p3 + p4 + p5 + p6;
+    const ROOT::Math::PxPyPzEVector tot = p1 + p2 + p3 + p4 + p5 + p6;
     
     const double ETot = tot.E();
     const double PzTot = tot.Pz();
@@ -169,7 +176,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
       continue;
     
     // Compute jacobian from change of variable:
-    vector<TLorentzVector> momenta;
+    vector<ROOT::Math::PxPyPzEVector> momenta;
     momenta.push_back(p1);
     momenta.push_back(p2);
     momenta.push_back(p3);

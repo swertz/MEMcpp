@@ -3,6 +3,7 @@
 
 #include "classes/DelphesClasses.h"
 
+#include "Math/Vector4D.h"
 #include "TStopwatch.h"
 #include "TString.h"
 #include "TChain.h"
@@ -58,7 +59,7 @@ int main(int argc, char *argv[])
     // Load selected branches with data from specified event
     chain.GetEntry(entry);
 
-    TLorentzVector gen_ep, gen_mum, gen_b, gen_bbar, gen_Met;
+    ROOT::Math::PtEtaPhiEVector gen_ep, gen_mum, gen_b, gen_bbar, gen_nue, gen_num, gen_Met;
 
     GenParticle *gen;
 
@@ -66,14 +67,16 @@ int main(int argc, char *argv[])
       gen = (GenParticle*) branchGen->At(i);
       //cout << "Status=" << gen->Status << ", PID=" << gen->PID << ", E=" << gen->P4().E() << endl;
       if (gen->Status == 1){
-        if (gen->PID == -11) gen_ep = gen->P4();
-        else if (gen->PID == 13) gen_mum = gen->P4();
-        else if (gen->PID == 12) gen_Met += gen->P4();
-        else if (gen->PID == -14) gen_Met += gen->P4();
-        else if (gen->PID == 5) gen_b = gen->P4();
-        else if (gen->PID == -5) gen_bbar = gen->P4();
+        if (gen->PID == -11) gen_ep.SetCoordinates(gen->P4().Pt(), gen->P4().Eta(), gen->P4().Phi(), gen->P4().E());
+        else if (gen->PID == 13) gen_mum.SetCoordinates(gen->P4().Pt(), gen->P4().Eta(), gen->P4().Phi(), gen->P4().E());
+        else if (gen->PID == 12) gen_nue.SetCoordinates(gen->P4().Pt(), gen->P4().Eta(), gen->P4().Phi(), gen->P4().E());
+        else if (gen->PID == -14) gen_num.SetCoordinates(gen->P4().Pt(), gen->P4().Eta(), gen->P4().Phi(), gen->P4().E());
+        else if (gen->PID == 5) gen_b.SetCoordinates(gen->P4().Pt(), gen->P4().Eta(), gen->P4().Phi(), gen->P4().E());
+        else if (gen->PID == -5) gen_bbar.SetCoordinates(gen->P4().Pt(), gen->P4().Eta(), gen->P4().Phi(), gen->P4().E());
       }
     }
+
+    gen_Met = gen_num + gen_nue;
 
     cout << "From MadGraph:" << endl;
     cout << "Electron" << endl;

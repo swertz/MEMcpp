@@ -9,7 +9,7 @@
 
 #include "cuba.h"
 
-#include "TLorentzVector.h"
+#include "Math/Vector4D.h"
 #include "TH1D.h"
 
 #include "MEWeight.h"
@@ -50,7 +50,7 @@ MEEvent* MEWeight::GetEvent(){
   return myEvent;
 }
 
-void MEWeight::SetEvent(const TLorentzVector ep, const TLorentzVector mum, const TLorentzVector b, const TLorentzVector bbar, const TLorentzVector met){
+void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector ep, const ROOT::Math::PtEtaPhiEVector mum, const ROOT::Math::PtEtaPhiEVector b, const ROOT::Math::PtEtaPhiEVector bbar, const ROOT::Math::PtEtaPhiEVector met){
   myEvent->SetVectors(ep, mum, b, bbar, met);
 }
 
@@ -79,7 +79,7 @@ double MEWeight::ComputeWeight(double &error){
 
   cout << "Starting integration..." << endl << endl;
 
-  //cubacores(0, 0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
+  cubacores(0, 0);           // This is mandatory if the integrand wants to *modify* something in the MEWeight object passed as argument
 #ifdef VEGAS
   Vegas
 #endif

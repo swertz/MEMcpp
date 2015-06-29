@@ -2,7 +2,7 @@
 #include <vector>
 #include <cmath>
 
-#include "TLorentzVector.h"
+#include "Math/Vector4D.h"
 #include "TMath.h"
 
 #include "utils.h"
@@ -11,13 +11,13 @@
 using namespace std;
 
 int ComputeTransformD(const double s13, const double s134, const double s25, const double s256,
-                      const TLorentzVector p3, const TLorentzVector p4, const TLorentzVector p5, const TLorentzVector p6, const TLorentzVector Met,
-                      std::vector<TLorentzVector> &p1, std::vector<TLorentzVector> &p2){
+                      const ROOT::Math::PxPyPzEVector p3, const ROOT::Math::PxPyPzEVector p4, const ROOT::Math::PxPyPzEVector p5, const ROOT::Math::PxPyPzEVector p6, const ROOT::Math::PxPyPzEVector Met,
+                      std::vector<ROOT::Math::PxPyPzEVector> &p1, std::vector<ROOT::Math::PxPyPzEVector> &p2){
   // pT = transverse total momentum of the visible particles
-  TLorentzVector pT = p3 + p4 + p5 + p6;
+  ROOT::Math::PxPyPzEVector pT = p3 + p4 + p5 + p6;
 
-  const double p34 = p3*p4;
-  const double p56 = p5*p6;
+  const double p34 = p3.Dot(p4);
+  const double p56 = p5.Dot(p6);
   const double p33 = p3.M2();
   const double p44 = p4.M2();
   const double p55 = p5.M2();
@@ -107,17 +107,19 @@ int ComputeTransformD(const double s13, const double s134, const double s25, con
     if(e1 < 0. || e2 < 0.)
       continue;
 
-    TLorentzVector tempp1, tempp2;
+    ROOT::Math::PxPyPzEVector tempp1, tempp2;
 
-    tempp1.SetPx( alpha1*e1 + beta1*e2 + gamma1 );
-    tempp1.SetPy( alpha2*e1 + beta2*e2 + gamma2 );
-    tempp1.SetPz( alpha3*e1 + beta3*e2 + gamma3 );
-    tempp1.SetE(e1);
+    tempp1.SetCoordinates(
+        alpha1*e1 + beta1*e2 + gamma1,
+        alpha2*e1 + beta2*e2 + gamma2,
+        alpha3*e1 + beta3*e2 + gamma3,
+        e1);
 
-    tempp2.SetPx( alpha5*e1 + beta5*e2 + gamma5 );
-    tempp2.SetPy( alpha6*e1 + beta6*e2 + gamma6 );
-    tempp2.SetPz( alpha4*e1 + beta4*e2 + gamma4 ); 
-    tempp2.SetE(e2);
+    tempp2.SetCoordinates(
+        alpha5*e1 + beta5*e2 + gamma5,
+        alpha6*e1 + beta6*e2 + gamma6,
+        alpha4*e1 + beta4*e2 + gamma4,
+        e2);
 
     p1.push_back(tempp1);
     p2.push_back(tempp2);
@@ -126,7 +128,7 @@ int ComputeTransformD(const double s13, const double s134, const double s25, con
   return p1.size();
 }
 
-double computeJacobianD(const std::vector<TLorentzVector> p, const double sqrt_s){
+double computeJacobianD(const std::vector<ROOT::Math::PxPyPzEVector> p, const double sqrt_s){
   
   const double E1  = p.at(0).E();
   const double p1x = p.at(0).Px();
