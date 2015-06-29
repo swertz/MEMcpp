@@ -27,11 +27,11 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
       return 0;
   }
 
-  const ROOT::Math::PtEtaPhiEVector p3rec = myEvent->GetP3();
-  const ROOT::Math::PtEtaPhiEVector p4rec = myEvent->GetP4();
-  const ROOT::Math::PtEtaPhiEVector p5rec = myEvent->GetP5();
-  const ROOT::Math::PtEtaPhiEVector p6rec = myEvent->GetP6();
-  const ROOT::Math::PtEtaPhiEVector RecMet = myEvent->GetMet();
+  const ROOT::Math::PtEtaPhiEVector p3rec( myEvent->GetP3() );
+  const ROOT::Math::PtEtaPhiEVector p4rec( myEvent->GetP4() );
+  const ROOT::Math::PtEtaPhiEVector p5rec( myEvent->GetP5() );
+  const ROOT::Math::PtEtaPhiEVector p6rec( myEvent->GetP6() );
+  const ROOT::Math::PtEtaPhiEVector RecMet( myEvent->GetMet() );
 
   ///// Transfer functions
 
