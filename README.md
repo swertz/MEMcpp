@@ -1,12 +1,12 @@
 ##### Compute Matrix Element weights ####
 
 How to install:
- * Fork this repo and/or clone it: 
+ * Fork this repo and/or clone it (username=swertz or AlexandreMertens): 
 ```
 $ git clone https://github.com/(username)/MEMcpp
 ```
  
- * Setup environment (works on both ingrid-ui1 and lxplus):
+ * Setup environment (works on both ingrid-ui1 and lxplus). Starting from a clean environment, do:
 ```
 $ cd MEMcpp
 $ source init.sh
