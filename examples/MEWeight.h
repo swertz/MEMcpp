@@ -21,13 +21,13 @@ class MEWeight{
   public:
 
   double Integrand(const double* Xarg, const double *weight);
-  double ComputePdf(const int pid, const double x, const double q2);
+  double ComputePdf(const int &pid, const double &x, const double &q2);
   inline void setProcessMomenta(vector<double*> &p){ process.setMomenta(p); }
   inline void computeMatrixElements(){ process.sigmaKin(); }
   inline const double* const getMatrixElements() const { return process.getMatrixElements(); }
   double ComputeWeight(double &error);
   MEEvent* GetEvent();
-  void SetEvent(const ROOT::Math::PtEtaPhiEVector ep, const ROOT::Math::PtEtaPhiEVector mum, const ROOT::Math::PtEtaPhiEVector b, const ROOT::Math::PtEtaPhiEVector bbar, const ROOT::Math::PtEtaPhiEVector met);
+  void SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met);
   void AddTF(const std::string particleName, const std::string histName);
 
   MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF);
