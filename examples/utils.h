@@ -24,8 +24,14 @@
 //    level != 0 => Ranlux pseudo-random, level = determines period of generator
 unsigned int setFlags(char verbosity = 0, bool subregion = false, bool retainStateFile = false, unsigned int level = 0, bool smoothing = false, bool takeOnlyGridFromFile = true);
 
-template<typename T> void swap(T &a, T &b);
-template<typename T> T sign(const T x);
+template<typename T> T sign(const T x){
+  if(x > 0)
+    return 1;
+  else if(!x)
+    return 0;
+  else
+    return -1;
+}
 
 // Used to compute Jacobian for Transfer Function
 double dEoverdP(const double E, const double m);

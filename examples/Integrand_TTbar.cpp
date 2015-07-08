@@ -27,11 +27,11 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
       return 0;
   }
 
-  const ROOT::Math::PtEtaPhiEVector p3rec( myEvent->GetP3() );
-  const ROOT::Math::PtEtaPhiEVector p4rec( myEvent->GetP4() );
-  const ROOT::Math::PtEtaPhiEVector p5rec( myEvent->GetP5() );
-  const ROOT::Math::PtEtaPhiEVector p6rec( myEvent->GetP6() );
-  const ROOT::Math::PtEtaPhiEVector RecMet( myEvent->GetMet() );
+  const ROOT::Math::PtEtaPhiEVector p3rec( _recEvent->GetP3() );
+  const ROOT::Math::PtEtaPhiEVector p4rec( _recEvent->GetP4() );
+  const ROOT::Math::PtEtaPhiEVector p5rec( _recEvent->GetP5() );
+  const ROOT::Math::PtEtaPhiEVector p6rec( _recEvent->GetP6() );
+  const ROOT::Math::PtEtaPhiEVector RecMet( _recEvent->GetMet() );
 
   ///// Transfer functions
 
@@ -39,41 +39,41 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   ROOT::Math::PtEtaPhiEVector p3gen = p3rec;
   const double E3rec = p3rec.E();
-  const double p3DeltaRange = myTF->GetDeltaRange("electron", E3rec);
-  const double E3gen = E3rec - myTF->GetDeltaMax("electron", E3rec) + p3DeltaRange * Xarg[4];
+  const double p3DeltaRange = _TF->GetDeltaRange("electron", E3rec);
+  const double E3gen = E3rec - _TF->GetDeltaMax("electron", E3rec) + p3DeltaRange * Xarg[4];
   const double pt3gen = sqrt( SQ(E3gen) - SQ(p3rec.M()) ) / cosh(p3rec.Eta());
   p3gen.SetCoordinates(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
   if(p3DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
+    TFValue *= _TF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
 
   ROOT::Math::PtEtaPhiEVector p5gen = p5rec;
   const double E5rec = p5rec.E();
-  const double p5DeltaRange = myTF->GetDeltaRange("muon", E5rec);
-  const double E5gen = E5rec - myTF->GetDeltaMax("muon", E5rec) + p5DeltaRange * Xarg[6];
+  const double p5DeltaRange = _TF->GetDeltaRange("muon", E5rec);
+  const double E5gen = E5rec - _TF->GetDeltaMax("muon", E5rec) + p5DeltaRange * Xarg[6];
   const double pt5gen = sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / cosh(p5rec.Eta());
   p5gen.SetCoordinates(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
   if(p5DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
+    TFValue *= _TF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
 
   ROOT::Math::PtEtaPhiEVector p4gen = p4rec;
   const double E4rec = p4rec.E();
-  const double p4DeltaRange = myTF->GetDeltaRange("jet", E4rec);
-  const double E4gen = E4rec - myTF->GetDeltaMax("jet", E4rec) + p4DeltaRange * Xarg[5];
+  const double p4DeltaRange = _TF->GetDeltaRange("jet", E4rec);
+  const double E4gen = E4rec - _TF->GetDeltaMax("jet", E4rec) + p4DeltaRange * Xarg[5];
   const double pt4gen = sqrt( SQ(E4gen) - SQ(p4rec.M()) ) / cosh(p4rec.Eta());
   p4gen.SetCoordinates(pt4gen, p4rec.Eta(), p4rec.Phi(), E4gen);
   if(p4DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4gen.M());
+    TFValue *= _TF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4gen.M());
 
   ROOT::Math::PtEtaPhiEVector p6gen = p6rec;
   const double E6rec = p6rec.E();
-  const double p6DeltaRange = myTF->GetDeltaRange("jet", E6rec);
-  const double E6gen = p6rec.E() - myTF->GetDeltaMax("jet", E6rec) + p6DeltaRange * Xarg[7];
+  const double p6DeltaRange = _TF->GetDeltaRange("jet", E6rec);
+  const double E6gen = p6rec.E() - _TF->GetDeltaMax("jet", E6rec) + p6DeltaRange * Xarg[7];
   const double pt6gen = sqrt( SQ(E6gen) - SQ(p6rec.M()) ) / cosh(p6rec.Eta());
   p6gen.SetCoordinates(pt6gen, p6rec.Eta(), p6rec.Phi(), E6gen);
   if(p6DeltaRange != 0.)
-    TFValue *= myTF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6gen.M());
+    TFValue *= _TF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6gen.M());
 
-  // In the following, we want to use PxPyPzE vectors, since the change of variables is done over those variables
+  // In the following, we want to use PxPyPzE vectors, since the change of variables is done over those variables => we are already in the right basis, no need to recompute quantities every time
   ROOT::Math::PxPyPzEVector p3(p3gen);
   ROOT::Math::PxPyPzEVector p4(p4gen);
   ROOT::Math::PxPyPzEVector p5(p5gen);
@@ -183,21 +183,18 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     momenta.push_back(p4);
     momenta.push_back(p5);
     momenta.push_back(p6);
-    const double jac = computeJacobianD(momenta, SQRT_S);
-    if(jac <= 0.){
+    const double jacobian = computeJacobianD(momenta, SQRT_S);
+    if(jacobian <= 0.){
       cout << "Jac infinite!" << endl;
       continue;
     }
-  
+
     // Compute the Pdfs
     const double x1 = abs(q1Pz/(SQRT_S/2.));
     const double x2 = abs(q2Pz/(SQRT_S/2.));
 
-    const double pdf1_1 = ComputePdf(21, x1, SQ(M_T));
-    const double pdf1_2 = ComputePdf(21, x2, SQ(M_T));
-  
     // Compute flux factor 1/(2*x1*x2*s)
-    const double PhaseSpaceIn = 1.0 / ( 2. * x1 * x2 * SQ(SQRT_S) ); 
+    const double phaseSpaceIn = 1.0 / ( 2. * x1 * x2 * SQ(SQRT_S) ); 
 
     // Compute finale Phase Space for observed particles (not concerned by the change of variable)
     // dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
@@ -205,7 +202,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     const double dPhip4 = pow(p4.P(),2.)*TMath::Sin(p4.Theta())/(2.0*p4.E()*pow(2.*TMath::Pi(),3));
     const double dPhip5 = pow(p5.P(),2.)*TMath::Sin(p5.Theta())/(2.0*p5.E()*pow(2.*TMath::Pi(),3));
     const double dPhip6 = pow(p6.P(),2.)*TMath::Sin(p6.Theta())/(2.0*p6.E()*pow(2.*TMath::Pi(),3));
-    const double PhaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
+    const double phaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
 
     // momentum vector definition
     vector<double*> p;
@@ -230,15 +227,26 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     setProcessMomenta(p);
 
     // Evaluate matrix element
-    computeMatrixElements();
-    const double* const matrix_elements1 = getMatrixElements();
+    const map< pair<int, int>, double > matrixElements = getMatrixElements();
+
+    const double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFValue;
     
+    // Loop over the different initial states
+    // compute PDFs and matrix elements
+    const double pdfMESum = 0.;
+    for(auto &initialState: _initialStates){
+      const double pdf1 = ComputePdf(initialState.first, x1, SQ(M_T));
+      const double pdf2 = ComputePdf(initialState.second, x2, SQ(M_T));
+  
+      pdfMESum += matrixElements[initialState] * pdf1 * pdf2;
+    }
+
     // free up memory
     for(unsigned int j = 0; j < p.size(); ++j){
       delete [] p.at(j); p.at(j) = nullptr;
     }
 
-    const double thisSolResult = PhaseSpaceIn * matrix_elements1[0] * pdf1_1 * pdf1_2 * PhaseSpaceOut * jac * flatterJac * TFValue;
+    thisSolResult *= pdfMESum;
     Value += thisSolResult; 
     
     // Check whether the next solutions for the neutrinos are the same => don't redo all this!

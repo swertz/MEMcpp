@@ -1,6 +1,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <utility>
+#include <algorithm>
 
 #include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
 
@@ -30,10 +32,10 @@ MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, c
   cout << "PDF " << pdfName << endl;
   cout << "TF file " << fileTF << endl;
 
-  process.initProc(paramCardPath);
-  pdf = LHAPDF::mkPDF(pdfName, 0);
-  myEvent = new MEEvent();
-  myTF = new TransferFunction(fileTF);
+  _process.initProc(paramCardPath);
+  _pdf = LHAPDF::mkPDF(pdfName, 0);
+  _recEvent = new MEEvent();
+  _TF = new TransferFunction(fileTF);
 }
 
 double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
@@ -42,7 +44,7 @@ double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
     cout << "WARNING: PDF x or Q^2 value out of bounds!" << endl;
     return 0.;
   }else{
-    return pdf->xfxQ2(pid, x, q2)/x;
+    return _pdf->xfxQ2(pid, x, q2)/x;
   }
 }
 
@@ -51,11 +53,33 @@ MEEvent* MEWeight::GetEvent(){
 }
 
 void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met){
-  myEvent->SetVectors(ep, mum, b, bbar, met);
+  _recEvent->SetVectors(ep, mum, b, bbar, met);
 }
 
 void MEWeight::AddTF(const std::string particleName, const std::string histName){
-  myTF->DefineComponent(particleName, histName);
+  _TF->DefineComponent(particleName, histName);
+}
+
+void MEWeight::AddInitialState(const int pid1, const int pid2){
+  // We must have a quark or a gluon as initial state!
+  if( (abs(pid1) > 5 && pid1 != 21) || (abs(pid2) > 5 && pid2 != 21) ){
+    cerr << "Warning: initial state (" << pid1 << "," << pid2 << ") is not valid! I'm not including it.\n";
+    return;
+  }
+
+  // Sort the initial state PIDs in order to check more easily if they are already included
+  if(pid1 > pid2)
+    swap(pid1, pid2);
+  pair initialState = pair<int, int>(pid1, pid2);
+
+  if(_initialSates.find(initialState) == _initialStates.end()){
+    _initialStates.push_back(make_pair(pid1, pid2));
+    // Don't forget to add the crossed possibility if the initial particles are different
+    if(pid1 != pid2)
+      _initialStates.push_back(make_pair(pid2, pid1));
+  }else{
+    cerr << "Warning: initial state (" << pid1 << "," << pid2 << ") has already been defined. I'm not including it again.\n";
+  }
 }
 
 double MEWeight::ComputeWeight(double &error){
@@ -134,11 +158,11 @@ double MEWeight::ComputeWeight(double &error){
 
 MEWeight::~MEWeight(){
   cout << "Deleting PDF" << endl;
-  delete pdf; pdf = nullptr;
+  delete _pdf; _pdf = nullptr;
   cout << "Deleting myEvent" << endl;
-  delete myEvent; myEvent = nullptr;
+  delete _recEvent; _recEvent = nullptr;
   cout << "Deleting myTF" << endl;
-  delete myTF; myTF = nullptr;
+  delete _TF; _TF = nullptr;
 }
 
 int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){

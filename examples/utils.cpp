@@ -32,21 +32,6 @@ unsigned int setFlags(char verbosity, bool subregion, bool retainStateFile, unsi
   return flags;
 }
 
-template<typename T> void swap(T &a, T &b){
-  T temp = a;
-  a = b;
-  b = temp;
-}
-
-template<typename T> T sign(const T x){
-  if(x > 0)
-    return 1;
-  else if(!x)
-    return 0;
-  else
-    return -1;
-}
-
 double dEoverdP(const double E, const double m){
   const double rad = SQ(E) - SQ(m);
   if(rad <= 0)

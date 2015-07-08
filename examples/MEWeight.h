@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
 
@@ -23,8 +24,7 @@ class MEWeight{
   double Integrand(const double* Xarg, const double *weight);
   double ComputePdf(const int &pid, const double &x, const double &q2);
   inline void setProcessMomenta(vector<double*> &p){ process.setMomenta(p); }
-  inline void computeMatrixElements(){ process.sigmaKin(); }
-  inline const double* const getMatrixElements() const { return process.getMatrixElements(); }
+  inline std::map< std::pair<int, int>, double > getMatrixElements() const { return process.sigmaHat(); }
   double ComputeWeight(double &error);
   MEEvent* GetEvent();
   void SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met);
@@ -35,10 +35,11 @@ class MEWeight{
 
   private:
 
-  CPPProcess process;
-  LHAPDF::PDF* pdf;
-  MEEvent* myEvent;
-  TransferFunction* myTF;
+  std::vector<std::pair> _initialStates;
+  CPPProcess _process;
+  LHAPDF::PDF* _pdf;
+  MEEvent* _recEvent;
+  TransferFunction* _TF;
 };
 
 #endif
