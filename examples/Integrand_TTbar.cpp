@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "Math/Vector4D.h"
+#include "Math/Vector3D.h"
+#include "Math/Boost.h"
 #include "TMath.h"
 
 #include "MEWeight.h"
@@ -32,6 +34,10 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   const ROOT::Math::PtEtaPhiEVector p5rec( _recEvent->GetP5() );
   const ROOT::Math::PtEtaPhiEVector p6rec( _recEvent->GetP6() );
   const ROOT::Math::PtEtaPhiEVector RecMet( _recEvent->GetMet() );
+
+  // Define ISR vector from the observed particles and MET
+  // Do this in PxPyPzE basis as this will be more practical for the next stages (transverse boost)
+  ROOT::Math::PxPyPzEVector ISR( -(p3rec + p4rec + p5rec + p6rec + RecMet) );
 
   ///// Transfer functions
 
@@ -124,7 +130,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   std::vector<ROOT::Math::PxPyPzEVector> p1vec, p2vec;
 
   ComputeTransformD(s13, s134, s25, s256,
-                    p3, p4, p5, p6, Met,
+                    p3, p4, p5, p6, Met, ISR,
                     p1vec, p2vec);
 
   int countSol = 0;
@@ -163,6 +169,9 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     cout << p6.E() << "," << p6.Px() << "," << p6.Py() << "," << p6.Pz() << endl << endl;*/
   
     const ROOT::Math::PxPyPzEVector tot = p1 + p2 + p3 + p4 + p5 + p6;
+
+    cout << "Total x = " << tot.Px() << ", y = " << tot.Py() << endl;
+    cout << "ISR x = " << ISR.Px() << ", y = " << ISR.Py() << endl;
     
     const double ETot = tot.E();
     const double PzTot = tot.Pz();
@@ -176,13 +185,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
       continue;
     
     // Compute jacobian from change of variable:
-    vector<ROOT::Math::PxPyPzEVector> momenta;
-    momenta.push_back(p1);
-    momenta.push_back(p2);
-    momenta.push_back(p3);
-    momenta.push_back(p4);
-    momenta.push_back(p5);
-    momenta.push_back(p6);
+    vector<ROOT::Math::PxPyPzEVector> momenta( { p1, p2, p3, p4, p5, p6 } );
     const double jacobian = computeJacobianD(momenta, SQRT_S);
     if(jacobian <= 0.){
       cout << "Jac infinite!" << endl;
@@ -196,7 +199,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     // Compute flux factor 1/(2*x1*x2*s)
     const double phaseSpaceIn = 1.0 / ( 2. * x1 * x2 * SQ(SQRT_S) ); 
 
-    // Compute finale Phase Space for observed particles (not concerned by the change of variable)
+    // Compute phase space density for observed particles (not concerned by the change of variable)
     // dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
     const double dPhip3 = pow(p3.P(),2.)*TMath::Sin(p3.Theta())/(2.0*p3.E()*pow(2.*TMath::Pi(),3));
     const double dPhip4 = pow(p4.P(),2.)*TMath::Sin(p4.Theta())/(2.0*p4.E()*pow(2.*TMath::Pi(),3));
@@ -204,37 +207,53 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     const double dPhip6 = pow(p6.P(),2.)*TMath::Sin(p6.Theta())/(2.0*p6.E()*pow(2.*TMath::Pi(),3));
     const double phaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
 
-    // momentum vector definition
-    vector<double*> p;
-    p.push_back(new double[4]);
-    p[0][0] = q1Pz; p[0][1] = 0.0; p[0][2] = 0.0; p[0][3] = q1Pz;
-    p.push_back(new double[4]);
-    p[1][0] = abs(q2Pz); p[1][1] = 0.0; p[1][2] = 0.0; p[1][3] = q2Pz;
-    p.push_back(new double[4]);
+    // Boost the initial particle 4-momenta in order to match parton1 + parton2 = - ISR
+    ROOT::Math::PxPyPzEVector parton1(0., 0., q1Pz, q1Pz);
+    ROOT::Math::PxPyPzEVector parton2(0., 0., q2Pz, abs(q2Pz));
+    
+    ROOT::Math::XYZVector isrBoostVector = ISR.BoostToCM();
+    isrBoostVector.SetZ(0.); // We want a transverse boost only
+    ROOT::Math::Boost isrBoost(isrBoostVector);
+    parton1 = isrBoost(parton1);
+    parton2 = isrBoost(parton2);
+    //ISR = isrBoost(ISR);
+
+    //ROOT::Math::PxPyPzEVector testT = ISR; 
+    ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + ISR;
+    //ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + p1 + p2 + p3 + p4 + p5 + p6;
+    cout << "Test transverse: x = " << testT.Px() << ", y = " << testT.Py() << endl;
+
+    // Define momentum 4-vectors on which matrix element will be evaluated
+    vector<double*> p(8);
+    p[0] = new double[4];
+    p[0][0] = parton1.E(); p[0][1] = parton1.Px(); p[0][2] = parton1.Py(); p[0][3] = parton1.Pz();
+    p[1] = new double[4];
+    p[1][0] = parton2.E(); p[1][1] = parton2.Px(); p[1][2] = parton2.Py(); p[1][3] = parton2.Pz();
+    p[2] = new double[4];
     p[2][0] = p3.E(); p[2][1] = p3.Px(); p[2][2] = p3.Py(); p[2][3] = p3.Pz();
-    p.push_back(new double[4]);
+    p[3] = new double[4];
     p[3][0] = p1.E(); p[3][1] = p1.Px(); p[3][2] = p1.Py(); p[3][3] = p1.Pz();
-    p.push_back(new double[4]);
+    p[4] = new double[4];
     p[4][0] = p4.E(); p[4][1] = p4.Px(); p[4][2] = p4.Py(); p[4][3] = p4.Pz();
-    p.push_back(new double[4]);
+    p[5] = new double[4];
     p[5][0] = p5.E(); p[5][1] = p5.Px(); p[5][2] = p5.Py(); p[5][3] = p5.Pz();
-    p.push_back(new double[4]);
+    p[6] = new double[4];
     p[6][0] = p2.E(); p[6][1] = p2.Px(); p[6][2] = p2.Py(); p[6][3] = p2.Pz();
-    p.push_back(new double[4]);
+    p[7] = new double[4];
     p[7][0] = p6.E(); p[7][1] = p6.Px(); p[7][2] = p6.Py(); p[7][3] = p6.Pz();
 
     // Set momenta for this event
     setProcessMomenta(p);
 
     // Evaluate matrix element
-    const map< pair<int, int>, double > matrixElements = getMatrixElements();
+    map< pair<int, int>, double > matrixElements = getMatrixElements();
 
-    const double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFValue;
+    double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFValue;
     
     // Loop over the different initial states
     // compute PDFs and matrix elements
-    const double pdfMESum = 0.;
-    for(auto &initialState: _initialStates){
+    double pdfMESum = 0.;
+    for(auto const &initialState: _initialStates){
       const double pdf1 = ComputePdf(initialState.first, x1, SQ(M_T));
       const double pdf2 = ComputePdf(initialState.second, x2, SQ(M_T));
   

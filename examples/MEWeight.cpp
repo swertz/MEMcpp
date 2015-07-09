@@ -49,7 +49,7 @@ double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
 }
 
 MEEvent* MEWeight::GetEvent(){
-  return myEvent;
+  return _recEvent;
 }
 
 void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met){
@@ -60,7 +60,7 @@ void MEWeight::AddTF(const std::string particleName, const std::string histName)
   _TF->DefineComponent(particleName, histName);
 }
 
-void MEWeight::AddInitialState(const int pid1, const int pid2){
+void MEWeight::AddInitialState(int pid1, int pid2){
   // We must have a quark or a gluon as initial state!
   if( (abs(pid1) > 5 && pid1 != 21) || (abs(pid2) > 5 && pid2 != 21) ){
     cerr << "Warning: initial state (" << pid1 << "," << pid2 << ") is not valid! I'm not including it.\n";
@@ -70,13 +70,15 @@ void MEWeight::AddInitialState(const int pid1, const int pid2){
   // Sort the initial state PIDs in order to check more easily if they are already included
   if(pid1 > pid2)
     swap(pid1, pid2);
-  pair initialState = pair<int, int>(pid1, pid2);
+  auto initialState = pair<int, int>(pid1, pid2);
 
-  if(_initialSates.find(initialState) == _initialStates.end()){
-    _initialStates.push_back(make_pair(pid1, pid2));
+  if(find(_initialStates.begin(), _initialStates.end(), initialState) == _initialStates.end()){
+    _initialStates.push_back(initialState);
     // Don't forget to add the crossed possibility if the initial particles are different
-    if(pid1 != pid2)
-      _initialStates.push_back(make_pair(pid2, pid1));
+    if(pid1 != pid2){
+      swap(initialState.first, initialState.second);
+      _initialStates.push_back(initialState);
+    }
   }else{
     cerr << "Warning: initial state (" << pid1 << "," << pid2 << ") has already been defined. I'm not including it again.\n";
   }
@@ -121,11 +123,11 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    350000,                 // (int) maximum number of integrand evaluations (approx.!)
+    3500,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
-    20000,                  // (int) number of integrand evaluations per interations (to start)
+    200,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
-    10000,                   // (int) batch size for sampling
+    100,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 

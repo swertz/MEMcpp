@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
   outTree->Branch("Weight_TT_cpp", &Weight_TT_cpp);
   outTree->Branch("Weight_TT_Error_cpp", &Weight_TT_Error_cpp);
   outTree->Branch("Weighted_TT_cpp", &Weighted_TT_cpp);
-  outTree->Branch("Weight_TT_cpp_me", time);
+  outTree->Branch("Weight_TT_cpp_me", &time);
 
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
@@ -57,10 +57,10 @@ int main(int argc, char *argv[])
   myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
   myWeight->AddInitialState(21, 21);
-  myWeight->AddInitialState(1, -1);
+  /*myWeight->AddInitialState(1, -1);
   myWeight->AddInitialState(2, -2);
   myWeight->AddInitialState(3, -3);
-  myWeight->AddInitialState(4, -4);
+  myWeight->AddInitialState(4, -4);*/
 
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    gen_Met = gen_num + gen_nue;
+    gen_Met = gen_num/* + gen_nue*/;
 
     cout << "From MadGraph:" << endl;
     cout << "Electron" << endl;
