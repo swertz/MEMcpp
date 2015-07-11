@@ -170,8 +170,9 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   
     const ROOT::Math::PxPyPzEVector tot = p1 + p2 + p3 + p4 + p5 + p6;
 
-    cout << "Total x = " << tot.Px() << ", y = " << tot.Py() << endl;
-    cout << "ISR x = " << ISR.Px() << ", y = " << ISR.Py() << endl;
+    /*cout << "**********************" << endl;
+    cout << "Total: " << tot  << endl;
+    cout << "ISR: " << ISR << endl;*/
     
     const double ETot = tot.E();
     const double PzTot = tot.Pz();
@@ -210,18 +211,30 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     // Boost the initial particle 4-momenta in order to match parton1 + parton2 = - ISR
     ROOT::Math::PxPyPzEVector parton1(0., 0., q1Pz, q1Pz);
     ROOT::Math::PxPyPzEVector parton2(0., 0., q2Pz, abs(q2Pz));
+   
+    /*cout << "Before:" << endl;
+    cout << " Parton1: " << parton1 << endl;
+    cout << " Parton2: " << parton2 << endl;*/
+ 
+    // This gives reasonable results (test transverse < 1 GeV)
+    ROOT::Math::XYZVector isrBoostVector = -(tot.BoostToCM()); // WTF are -tot.BoostToCM() and -(tot.BoostToCM()) giving different results??
     
-    ROOT::Math::XYZVector isrBoostVector = ISR.BoostToCM();
+    // this does not give the same result as above, since beta_x(boost) = x/E, and while x_ISR = -x_tot, E_ISR != E_tot
+    //ROOT::Math::XYZVector isrBoostVector = ISR.BoostToCM(); 
+    
     isrBoostVector.SetZ(0.); // We want a transverse boost only
+    //cout << "Boost: " << isrBoostVector << endl;
     ROOT::Math::Boost isrBoost(isrBoostVector);
-    parton1 = isrBoost(parton1);
-    parton2 = isrBoost(parton2);
-    //ISR = isrBoost(ISR);
+    parton1 = isrBoost*parton1;
+    parton2 = isrBoost*parton2;
 
-    //ROOT::Math::PxPyPzEVector testT = ISR; 
-    ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + ISR;
-    //ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + p1 + p2 + p3 + p4 + p5 + p6;
-    cout << "Test transverse: x = " << testT.Px() << ", y = " << testT.Py() << endl;
+    /*cout << "After:" << endl;
+    cout << " Parton1: " << parton1 << endl;
+    cout << " Parton2: " << parton2 << endl;*/
+    
+    //ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + ISR;
+    //ROOT::Math::PxPyPzEVector testT = -parton1 - parton2 + p1 + p2 + p3 + p4 + p5 + p6;
+    //cout << "Test transverse: " << testT << endl;
 
     // Define momentum 4-vectors on which matrix element will be evaluated
     vector<double*> p(8);

@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    gen_Met = gen_num/* + gen_nue*/;
+    gen_Met = gen_num + gen_nue;
 
     cout << "From MadGraph:" << endl;
     cout << "Electron" << endl;

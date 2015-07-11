@@ -70,7 +70,7 @@ void MEWeight::AddInitialState(int pid1, int pid2){
   // Sort the initial state PIDs in order to check more easily if they are already included
   if(pid1 > pid2)
     swap(pid1, pid2);
-  auto initialState = pair<int, int>(pid1, pid2);
+  pair<int, int> initialState(pid1, pid2);
 
   if(find(_initialStates.begin(), _initialStates.end(), initialState) == _initialStates.end()){
     _initialStates.push_back(initialState);
@@ -123,17 +123,17 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    3500,                 // (int) maximum number of integrand evaluations (approx.!)
+    360000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
-    200,                  // (int) number of integrand evaluations per interations (to start)
+    20000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
-    100,                   // (int) batch size for sampling
+    10000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
-    50000,                  // (int) number of new integrand evaluations in each subdivision
-    0,                      // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
-    2,                      // (int) exponent in the norm used to compute fluctuations of a sample
+    40000,                  // (int) number of new integrand evaluations in each subdivision
+    5000,                      // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
+    50,                      // (int) exponent in the norm used to compute fluctuations of a sample
 #endif
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
     NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)

@@ -27,7 +27,7 @@ class MEWeight{
   //inline std::map< std::pair<int, int>, double > getMatrixElements() const { return _process.sigmaHat(); }
   inline std::map< std::pair<int, int>, double > getMatrixElements() {
     _process.sigmaKin(); 
-    std::map<std::pair<int,int>, double> temp;
+    std::map< std::pair<int, int>, double > temp;
     temp[std::make_pair(21,21)] = _process.getMatrixElements()[0];
     return temp;
   }
