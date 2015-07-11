@@ -22,7 +22,7 @@ class MEWeight{
   public:
 
   double Integrand(const double* Xarg, const double *weight);
-  double ComputePdf(const int &pid, const double &x, const double &q2);
+  inline double ComputePdf(const int &pid, const double &x, const double &q2);
   inline void setProcessMomenta(vector<double*> &p){ _process.setMomenta(p); }
   //inline std::map< std::pair<int, int>, double > getMatrixElements() const { return _process.sigmaHat(); }
   inline std::map< std::pair<int, int>, double > getMatrixElements() {
@@ -48,5 +48,15 @@ class MEWeight{
   MEEvent* _recEvent;
   TransferFunction* _TF;
 };
+
+inline double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
+  // return f(pid,x,q2)
+  if(x <= 0 || x >= 1 || q2 <= 0){
+    std::cout << "WARNING: PDF x or Q^2 value out of bounds!" << std::endl;
+    return 0.;
+  }else{
+    return _pdf->xfxQ2(pid, x, q2)/x;
+  }
+}
 
 #endif

@@ -38,16 +38,6 @@ MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, c
   _TF = new TransferFunction(fileTF);
 }
 
-double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
-  // return f(pid,x,q2)
-  if(x <= 0 || x >= 1 || q2 <= 0){
-    cout << "WARNING: PDF x or Q^2 value out of bounds!" << endl;
-    return 0.;
-  }else{
-    return _pdf->xfxQ2(pid, x, q2)/x;
-  }
-}
-
 MEEvent* MEWeight::GetEvent(){
   return _recEvent;
 }
