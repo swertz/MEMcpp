@@ -6,8 +6,14 @@ sourcedir := examples/
 
 #### TTbar specific
 
-ttbar_PROC_DIR := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum_NOPOW/
-ttbar_MGproc := $(ttbar_PROC_DIR)/SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.o
+#ttbar_PROC_DIR := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_test_gg_ttx_epmum_Wb/
+#ttbar_MGproc := $(ttbar_PROC_DIR)/SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/cpp_test_gg_ttx_epmum_Wb.o
+
+ttbar_PROC_DIR := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_pp_ttx_fullylept/
+ttbar_MGproc := $(ttbar_PROC_DIR)/SubProcesses/P0_Sigma_sm_gg_mupvmbmumvmxbx/cpp_pp_ttx_fullylept.o
+
+#ttbar_PROC_DIR := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum_NOPOW/
+#ttbar_MGproc := $(ttbar_PROC_DIR)/SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.o
 
 
 all: ttbar

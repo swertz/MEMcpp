@@ -4,8 +4,6 @@
 #include <utility>
 #include <algorithm>
 
-#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
-
 #include "LHAPDF/LHAPDF.h"
 #include "LHAPDF/PDFSet.h"
 
@@ -25,14 +23,13 @@
 
 using namespace std;
 
-MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF){
+MEWeight::MEWeight(CPPProcess &process, const std::string pdfName, const std::string fileTF):
+  _process(process){
 
   cout << "Initializing Matrix Element computation with:" << endl;
-  cout << "Parameter card " << paramCardPath << endl;
   cout << "PDF " << pdfName << endl;
   cout << "TF file " << fileTF << endl;
 
-  _process.initProc(paramCardPath);
   _pdf = LHAPDF::mkPDF(pdfName, 0);
   _recEvent = new MEEvent();
   _TF = new TransferFunction(fileTF);

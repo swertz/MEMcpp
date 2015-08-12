@@ -222,7 +222,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     // this does not give the same result as above, since beta_x(boost) = x/E, and while x_ISR = -x_tot, E_ISR != E_tot
     //ROOT::Math::XYZVector isrBoostVector = ISR.BoostToCM(); 
     
-    isrBoostVector.SetZ(0.); // We want a transverse boost only
+    //isrBoostVector.SetZ(0.); // We want a transverse boost only
     //cout << "Boost: " << isrBoostVector << endl;
     ROOT::Math::Boost isrBoost(isrBoostVector);
     parton1 = isrBoost*parton1;
@@ -236,30 +236,26 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     //ROOT::Math::PxPyPzEVector testT = -parton1 - parton2 + p1 + p2 + p3 + p4 + p5 + p6;
     //cout << "Test transverse: " << testT << endl;
 
-    // Define momentum 4-vectors on which matrix element will be evaluated
-    vector<double*> p(8);
-    p[0] = new double[4];
-    p[0][0] = parton1.E(); p[0][1] = parton1.Px(); p[0][2] = parton1.Py(); p[0][3] = parton1.Pz();
-    p[1] = new double[4];
-    p[1][0] = parton2.E(); p[1][1] = parton2.Px(); p[1][2] = parton2.Py(); p[1][3] = parton2.Pz();
-    p[2] = new double[4];
-    p[2][0] = p3.E(); p[2][1] = p3.Px(); p[2][2] = p3.Py(); p[2][3] = p3.Pz();
-    p[3] = new double[4];
-    p[3][0] = p1.E(); p[3][1] = p1.Px(); p[3][2] = p1.Py(); p[3][3] = p1.Pz();
-    p[4] = new double[4];
-    p[4][0] = p4.E(); p[4][1] = p4.Px(); p[4][2] = p4.Py(); p[4][3] = p4.Pz();
-    p[5] = new double[4];
-    p[5][0] = p5.E(); p[5][1] = p5.Px(); p[5][2] = p5.Py(); p[5][3] = p5.Pz();
-    p[6] = new double[4];
-    p[6][0] = p2.E(); p[6][1] = p2.Px(); p[6][2] = p2.Py(); p[6][3] = p2.Pz();
-    p[7] = new double[4];
-    p[7][0] = p6.E(); p[7][1] = p6.Px(); p[7][2] = p6.Py(); p[7][3] = p6.Pz();
-
-    // Set momenta for this event
-    setProcessMomenta(p);
+    // Define initial momenta to be passed to matrix element
+    std::vector< std::vector<double> > initialMomenta = 
+    {
+      { parton1.E(), parton1.Px(), parton1.Py(), parton1.Pz() },
+      { parton2.E(), parton2.Px(), parton2.Py(), parton2.Pz() },
+    };
+    
+    // Define final PID and momenta to be passed to matrix element
+    std::vector< std::pair<int, std::vector<double> > > finalState = 
+    {
+      std::make_pair<int, std::vector<double>>(-11, { p3.E(), p3.Px(), p3.Py(), p3.Pz() }),
+      std::make_pair<int, std::vector<double>>(12, { p1.E(), p1.Px(), p1.Py(), p1.Pz() }),
+      std::make_pair<int, std::vector<double>>(5, { p4.E(), p4.Px(), p4.Py(), p4.Pz() }),
+      std::make_pair<int, std::vector<double>>(13, { p5.E(), p5.Px(), p5.Py(), p5.Pz() }),
+      std::make_pair<int, std::vector<double>>(-14, { p2.E(), p2.Px(), p2.Py(), p2.Pz() }),
+      std::make_pair<int, std::vector<double>>(-5, { p6.E(), p6.Px(), p6.Py(), p6.Pz() }),
+    };
 
     // Evaluate matrix element
-    map< pair<int, int>, double > matrixElements = getMatrixElements();
+    map< pair<int, int>, double > matrixElements = getMatrixElements(initialMomenta, finalState);
 
     double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFValue;
     
@@ -271,11 +267,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
       const double pdf2 = ComputePdf(initialState.second, x2, SQ(M_T));
   
       pdfMESum += matrixElements[initialState] * pdf1 * pdf2;
-    }
-
-    // free up memory
-    for(unsigned int j = 0; j < p.size(); ++j){
-      delete [] p.at(j); p.at(j) = nullptr;
+      //cout << "Initial state (" << initialState.first << ", " << initialState.second << "): " << matrixElements[initialState] << endl;
     }
 
     thisSolResult *= pdfMESum;

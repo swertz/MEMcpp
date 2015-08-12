@@ -10,6 +10,10 @@
 #include "TFile.h"
 #include "TClonesArray.h"
 
+//#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/cpp_test_gg_ttx_epmum_Wb.h"
+#include "SubProcesses/P0_Sigma_sm_gg_mupvmbmumvmxbx/cpp_pp_ttx_fullylept.h"
+//#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
+
 #include "MEWeight.h"
 
 using namespace std;
@@ -49,18 +53,23 @@ int main(int argc, char *argv[])
 
   if(end_evt >= chain.GetEntries())
     end_evt = chain.GetEntries()-1;
-  
-  MEWeight* myWeight = new MEWeight("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat", "cteq6l1", fileTF);
+
+  //_process = new cpp_test_gg_ttx_epmum_Wb(paramCardPath);
+  //_process = new CPPProcess();
+  //_process->initProc(paramCardPath);
+  // Create CPPProcess and MEWeight objects
+  cpp_pp_ttx_fullylept myProcess("/home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_ttbar_epmum/Cards/param_card.dat");
+  MEWeight* myWeight = new MEWeight(myProcess, "cteq6l1", fileTF);
   
   myWeight->AddTF("electron", "Binned_Egen_DeltaE_Norm_ele");
   myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
   myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
   myWeight->AddInitialState(21, 21);
-  /*myWeight->AddInitialState(1, -1);
+  myWeight->AddInitialState(1, -1);
   myWeight->AddInitialState(2, -2);
   myWeight->AddInitialState(3, -3);
-  myWeight->AddInitialState(4, -4);*/
+  myWeight->AddInitialState(4, -4);
 
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event

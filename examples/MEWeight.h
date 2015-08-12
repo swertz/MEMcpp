@@ -5,7 +5,8 @@
 #include <vector>
 #include <utility>
 
-#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
+#include "src/process_base_classes.h"
+//#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
 
 #include "LHAPDF/LHAPDF.h"
 #include "LHAPDF/PDFSet.h"
@@ -23,27 +24,20 @@ class MEWeight{
 
   double Integrand(const double* Xarg, const double *weight);
   inline double ComputePdf(const int &pid, const double &x, const double &q2);
-  inline void setProcessMomenta(vector<double*> &p){ _process.setMomenta(p); }
-  //inline std::map< std::pair<int, int>, double > getMatrixElements() const { return _process.sigmaHat(); }
-  inline std::map< std::pair<int, int>, double > getMatrixElements() {
-    _process.sigmaKin(); 
-    std::map< std::pair<int, int>, double > temp;
-    temp[std::make_pair(21,21)] = _process.getMatrixElements()[0];
-    return temp;
-  }
+  inline std::map< std::pair<int, int>, double > getMatrixElements(const std::vector< std::vector<double> > &initialMomenta, const std::vector< std::pair<int, std::vector<double> > > &finalState) const { return _process.sigmaKin(initialMomenta, finalState); }
   double ComputeWeight(double &error);
   MEEvent* GetEvent();
   void SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met);
   void AddTF(const std::string particleName, const std::string histName);
   void AddInitialState(int pid1, int pid2);
 
-  MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF);
+  MEWeight(CPPProcess &process, const std::string pdfName, const std::string fileTF);
   ~MEWeight();
 
   private:
 
   std::vector< std::pair<int, int> > _initialStates;
-  CPPProcess _process;
+  CPPProcess &_process;
   LHAPDF::PDF* _pdf;
   MEEvent* _recEvent;
   TransferFunction* _TF;
