@@ -36,7 +36,7 @@ MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, c
   myTF = new TransferFunction(fileTF);
 }
 
-double MEWeight::ComputePdf(const int pid, const double x, const double q2){
+double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
   // return f(pid,x,q2)
   if(x <= 0 || x >= 1 || q2 <= 0){
     cout << "WARNING: PDF x or Q^2 value out of bounds!" << endl;
@@ -50,7 +50,7 @@ MEEvent* MEWeight::GetEvent(){
   return myEvent;
 }
 
-void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector ep, const ROOT::Math::PtEtaPhiEVector mum, const ROOT::Math::PtEtaPhiEVector b, const ROOT::Math::PtEtaPhiEVector bbar, const ROOT::Math::PtEtaPhiEVector met){
+void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met){
   myEvent->SetVectors(ep, mum, b, bbar, met);
 }
 

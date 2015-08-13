@@ -6,7 +6,7 @@
 class MEEvent{
   public:
 
-  void SetVectors(const ROOT::Math::PtEtaPhiEVector ep, const ROOT::Math::PtEtaPhiEVector mum, const ROOT::Math::PtEtaPhiEVector b, const ROOT::Math::PtEtaPhiEVector bbar, const ROOT::Math::PtEtaPhiEVector met);
+  void SetVectors(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met);
 
   inline const ROOT::Math::PtEtaPhiEVector& GetP3() const { return p3; }
   inline const ROOT::Math::PtEtaPhiEVector& GetP4() const { return p4; }

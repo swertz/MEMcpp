@@ -10,8 +10,8 @@
 
 using namespace std;
 
-int ComputeTransformD(const double s13, const double s134, const double s25, const double s256,
-                      const ROOT::Math::PxPyPzEVector p3, const ROOT::Math::PxPyPzEVector p4, const ROOT::Math::PxPyPzEVector p5, const ROOT::Math::PxPyPzEVector p6, const ROOT::Math::PxPyPzEVector Met,
+int ComputeTransformD(const double &s13, const double &s134, const double &s25, const double &s256,
+                      const ROOT::Math::PxPyPzEVector &p3, const ROOT::Math::PxPyPzEVector &p4, const ROOT::Math::PxPyPzEVector &p5, const ROOT::Math::PxPyPzEVector &p6, const ROOT::Math::PxPyPzEVector &Met,
                       std::vector<ROOT::Math::PxPyPzEVector> &p1, std::vector<ROOT::Math::PxPyPzEVector> &p2){
   // pT = transverse total momentum of the visible particles
   ROOT::Math::PxPyPzEVector pT = p3 + p4 + p5 + p6;
@@ -128,7 +128,7 @@ int ComputeTransformD(const double s13, const double s134, const double s25, con
   return p1.size();
 }
 
-double computeJacobianD(const std::vector<ROOT::Math::PxPyPzEVector> p, const double sqrt_s){
+double computeJacobianD(const std::vector<ROOT::Math::PxPyPzEVector> &p, const double &sqrt_s){
   
   const double E1  = p.at(0).E();
   const double p1x = p.at(0).Px();

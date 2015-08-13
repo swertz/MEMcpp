@@ -12,10 +12,10 @@ class BinnedTF{
 
   BinnedTF(const std::string particleName, const std::string histName, TFile* file);
   ~BinnedTF();
-  inline double Evaluate(const double Erec, const double Egen) const;
-  inline double GetDeltaRange(const double Erec) const;
-  inline double GetDeltaMin(const double Erec) const;
-  inline double GetDeltaMax(const double Erec) const;
+  inline double Evaluate(const double &Erec, const double &Egen) const;
+  inline double GetDeltaRange(const double &Erec) const;
+  inline double GetDeltaMin(const double &Erec) const;
+  inline double GetDeltaMax(const double &Erec) const;
 
   private:
 
@@ -26,7 +26,7 @@ class BinnedTF{
   const TH2D* _TF;
 };
 
-inline double BinnedTF::Evaluate(const double Erec, const double Egen) const {
+inline double BinnedTF::Evaluate(const double &Erec, const double &Egen) const {
   //std::cout << "Evaluating TF for particle " << _particleName << ": Erec = " << Erec << ", Egen = " << Egen << std::endl;
   
   double delta = Erec - Egen;
@@ -43,15 +43,15 @@ inline double BinnedTF::Evaluate(const double Erec, const double Egen) const {
   return _TF->GetBinContent(bin);
 }
 
-inline double BinnedTF::GetDeltaRange(const double Erec) const {
+inline double BinnedTF::GetDeltaRange(const double &Erec) const {
   return GetDeltaMax(Erec) - GetDeltaMin(Erec);
 }
 
-inline double BinnedTF::GetDeltaMin(const double Erec) const {
+inline double BinnedTF::GetDeltaMin(const double &Erec) const {
   return std::max(_deltaMin, Erec - _EgenMax);
 }
 
-inline double BinnedTF::GetDeltaMax(const double Erec) const {
+inline double BinnedTF::GetDeltaMax(const double &Erec) const {
   return std::min(_deltaMax, Erec - _EgenMin);
 }
 
