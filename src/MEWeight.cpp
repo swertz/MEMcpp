@@ -24,15 +24,14 @@
 using namespace std;
 
 MEWeight::MEWeight(CPPProcess &process, const std::string pdfName, const std::string fileTF):
-  _process(process){
+  _process(process),
+  _pdf( LHAPDF::mkPDF(pdfName, 0) ),
+  _recEvent( new MEEvent() ),
+  _TF( new TransferFunction(fileTF) ){
 
   cout << "Initializing Matrix Element computation with:" << endl;
   cout << "PDF " << pdfName << endl;
   cout << "TF file " << fileTF << endl;
-
-  _pdf = LHAPDF::mkPDF(pdfName, 0);
-  _recEvent = new MEEvent();
-  _TF = new TransferFunction(fileTF);
 }
 
 MEEvent* MEWeight::GetEvent(){
@@ -59,7 +58,7 @@ void MEWeight::AddInitialState(int pid1, int pid2){
     swap(pid1, pid2);
   pair<int, int> initialState(pid1, pid2);
 
-  if(find(_initialStates.begin(), _initialStates.end(), initialState) == _initialStates.end()){
+  if( find(_initialStates.begin(), _initialStates.end(), initialState) == _initialStates.end() ){
     _initialStates.push_back(initialState);
     // Don't forget to add the crossed possibility if the initial particles are different
     if(pid1 != pid2){
@@ -110,7 +109,7 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    60000,                 // (int) maximum number of integrand evaluations (approx.!)
+    360000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
     20000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations

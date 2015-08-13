@@ -147,20 +147,66 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
   
     const ROOT::Math::PxPyPzEVector tot = p1 + p2 + p3 + p4 + p5 + p6;
 
+    //////////////////////////// ISR CORRECTION ////////////////////////////////
     /*cout << "**********************" << endl;
     cout << "Total: " << tot  << endl;
     cout << "ISR: " << ISR << endl;*/
     
-    const double ETot = tot.E();
+    // Define boost that puts the transverse total momentum vector in its CoM frame 
+    ROOT::Math::PxPyPzEVector tempTot( tot );
+    tempTot.SetPz(0.);
+    ROOT::Math::XYZVector isrDeBoostVector( tempTot.BoostToCM() );
+    
+    //ROOT::Math::XYZVector isrBoostVector = -ISR.BoostToCM(); // this does not give the same result as above, since beta_x(boost) = x/E, and while x_ISR = -x_tot, E_ISR != E_tot
+    
+    // In the "transverse" CoM frame, use total Pz and E to define initial longitudinal quark momenta
+    //cout << "Boost: " << isrBoostVector << endl;
+    const ROOT::Math::Boost isrDeBoost( isrDeBoostVector );
+    const ROOT::Math::PxPyPzEVector newTot( isrDeBoost*tot );
+    const double ETot = newTot.E();
+    const double PzTot = newTot.Pz();
+
+    const double q1Pz = (PzTot + ETot)/2.;
+    const double q2Pz = (PzTot - ETot)/2.;
+  
+    if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.)
+      continue;
+    
+    ROOT::Math::PxPyPzEVector parton1(0., 0., q1Pz, q1Pz);
+    ROOT::Math::PxPyPzEVector parton2(0., 0., q2Pz, abs(q2Pz));
+
+    /*cout << "Before:" << endl;
+    cout << " Parton1: " << parton1 << endl;
+    cout << " Parton2: " << parton2 << endl;*/
+   
+    // Boost initial parton momenta by the opposite of the transverse boost needed to put the whole system in its CoM
+    const ROOT::Math::Boost isrBoost( -isrDeBoostVector );
+    parton1 = isrBoost*parton1;
+    parton2 = isrBoost*parton2;
+
+    /*cout << "After:" << endl;
+    cout << " Parton1: " << parton1 << endl;
+    cout << " Parton2: " << parton2 << endl;*/
+   
+    //ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + ISR;
+    //ROOT::Math::PxPyPzEVector testT = -parton1 - parton2 + p1 + p2 + p3 + p4 + p5 + p6;
+    //cout << "Test transverse: " << testT << endl;
+    
+    ///////////////// NO ISR CORRECTION //////////////////////////////////////////
+    /*const double ETot = tot.E();
     const double PzTot = tot.Pz();
 
     const double q1Pz = (PzTot + ETot)/2.;
     const double q2Pz = (PzTot - ETot)/2.;
-
-    //cout << "===> Eext=" << ETot << ", Pzext=" << PzTot << ", q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl << endl;
-  
+    
     if(q1Pz > SQRT_S/2. || q2Pz < -SQRT_S/2. || q1Pz < 0. || q2Pz > 0.)
       continue;
+  
+    ROOT::Math::PxPyPzEVector parton1(0., 0., q1Pz, q1Pz);
+    ROOT::Math::PxPyPzEVector parton2(0., 0., q2Pz, abs(q2Pz));*/
+    //////////////////////////////////////////////////////////////////////////////   
+    
+    //cout << "===> Eext=" << ETot << ", Pzext=" << PzTot << ", q1Pz=" << q1Pz << ", q2Pz=" << q2Pz << endl << endl;
     
     // Compute jacobian from change of variable:
     vector<ROOT::Math::PxPyPzEVector> momenta( { p1, p2, p3, p4, p5, p6 } );
@@ -184,34 +230,6 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
     const double dPhip5 = SQ(p5.P())*sin(p5.Theta())/(2.0*p5.E()*CB(2.*M_PI));
     const double dPhip6 = SQ(p6.P())*sin(p6.Theta())/(2.0*p6.E()*CB(2.*M_PI));
     const double phaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
-
-    // Boost the initial particle 4-momenta in order to match parton1 + parton2 = - ISR
-    ROOT::Math::PxPyPzEVector parton1(0., 0., q1Pz, q1Pz);
-    ROOT::Math::PxPyPzEVector parton2(0., 0., q2Pz, abs(q2Pz));
-   
-    /*cout << "Before:" << endl;
-    cout << " Parton1: " << parton1 << endl;
-    cout << " Parton2: " << parton2 << endl;*/
- 
-    // This gives reasonable results (test transverse < 1 GeV)
-    ROOT::Math::XYZVector isrBoostVector = -(tot.BoostToCM()); // WTF are -tot.BoostToCM() and -(tot.BoostToCM()) giving different results??
-    
-    // this does not give the same result as above, since beta_x(boost) = x/E, and while x_ISR = -x_tot, E_ISR != E_tot
-    //ROOT::Math::XYZVector isrBoostVector = ISR.BoostToCM(); 
-    
-    //isrBoostVector.SetZ(0.); // We want a transverse boost only
-    //cout << "Boost: " << isrBoostVector << endl;
-    ROOT::Math::Boost isrBoost(isrBoostVector);
-    parton1 = isrBoost*parton1;
-    parton2 = isrBoost*parton2;
-
-    /*cout << "After:" << endl;
-    cout << " Parton1: " << parton1 << endl;
-    cout << " Parton2: " << parton2 << endl;*/
-    
-    //ROOT::Math::PxPyPzEVector testT = parton1 + parton2 + ISR;
-    //ROOT::Math::PxPyPzEVector testT = -parton1 - parton2 + p1 + p2 + p3 + p4 + p5 + p6;
-    //cout << "Test transverse: " << testT << endl;
 
     // Define initial momenta to be passed to matrix element
     std::vector< std::vector<double> > initialMomenta = 
