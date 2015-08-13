@@ -65,11 +65,11 @@ int main(int argc, char *argv[])
   myWeight->AddTF("muon", "Binned_Egen_DeltaE_Norm_muon");
   myWeight->AddTF("jet", "Binned_Egen_DeltaE_Norm_jet");
 
-  myWeight->AddInitialState(21, 21);
+  /*myWeight->AddInitialState(21, 21);
   myWeight->AddInitialState(1, -1);
   myWeight->AddInitialState(2, -2);
   myWeight->AddInitialState(3, -3);
-  myWeight->AddInitialState(4, -4);
+  myWeight->AddInitialState(4, -4);*/
 
   for(int entry = start_evt; entry <= end_evt ; ++entry){
     // Load selected branches with data from specified event

@@ -154,13 +154,13 @@ MEWeight::~MEWeight(){
   delete _TF; _TF = nullptr;
 }
 
-int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){
+// Wrapper function passed to CUBA, simply calls MEWeight::Integrand (where the MEWeight instance is passed as "input" to the wrapper), passing the PS point and the weight
+int CUBAIntegrand(const int *nDim, const double* psPoint, const int *nComp, double *value, void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << "," << Xarg[4] << "," << Xarg[5] << "," << Xarg[6] << "," << Xarg[7] << "]" << endl;
   
-  MEWeight* myWeight = (MEWeight*) inputs;
-  *Value = myWeight->Integrand(Xarg, weight);
+  *value = static_cast<MEWeight*>(inputs)->Integrand(psPoint, weight);
 
   return 0;
 }

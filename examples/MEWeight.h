@@ -17,7 +17,7 @@
 #include "transferFunction.h"
 #include "MEEvent.h"
 
-int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight);
+int CUBAIntegrand(const int *nDim, const double* psPoint, const int *nComp, double *value, void *inputs, const int *nVec, const int *core, const double *weight);
 
 class MEWeight{
   public:

@@ -22,7 +22,7 @@
 using namespace std;
 
 double MEWeight::Integrand(const double* Xarg, const double *weight){
-  double Value = 0.;
+  double returnValue = 0.;
 
   for(int i=0; i<4; ++i){
     if(Xarg[i] == 1.)
@@ -41,7 +41,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   ///// Transfer functions
 
-  double TFValue = 1.;
+  double TFreturnValue = 1.;
 
   ROOT::Math::PtEtaPhiEVector p3gen = p3rec;
   const double E3rec = p3rec.E();
@@ -50,7 +50,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   const double pt3gen = sqrt( SQ(E3gen) - SQ(p3rec.M()) ) / cosh(p3rec.Eta());
   p3gen.SetCoordinates(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
   if(p3DeltaRange != 0.)
-    TFValue *= _TF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
+    TFreturnValue *= _TF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
 
   ROOT::Math::PtEtaPhiEVector p5gen = p5rec;
   const double E5rec = p5rec.E();
@@ -59,7 +59,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   const double pt5gen = sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / cosh(p5rec.Eta());
   p5gen.SetCoordinates(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
   if(p5DeltaRange != 0.)
-    TFValue *= _TF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
+    TFreturnValue *= _TF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
 
   ROOT::Math::PtEtaPhiEVector p4gen = p4rec;
   const double E4rec = p4rec.E();
@@ -68,7 +68,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   const double pt4gen = sqrt( SQ(E4gen) - SQ(p4rec.M()) ) / cosh(p4rec.Eta());
   p4gen.SetCoordinates(pt4gen, p4rec.Eta(), p4rec.Phi(), E4gen);
   if(p4DeltaRange != 0.)
-    TFValue *= _TF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4gen.M());
+    TFreturnValue *= _TF->Evaluate("jet", E4rec, E4gen) * p4DeltaRange * dEoverdP(E4gen, p4gen.M());
 
   ROOT::Math::PtEtaPhiEVector p6gen = p6rec;
   const double E6rec = p6rec.E();
@@ -77,7 +77,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   const double pt6gen = sqrt( SQ(E6gen) - SQ(p6rec.M()) ) / cosh(p6rec.Eta());
   p6gen.SetCoordinates(pt6gen, p6rec.Eta(), p6rec.Phi(), E6gen);
   if(p6DeltaRange != 0.)
-    TFValue *= _TF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6gen.M());
+    TFreturnValue *= _TF->Evaluate("jet", E6rec, E6gen) * p6DeltaRange * dEoverdP(E6gen, p6gen.M());
 
   // In the following, we want to use PxPyPzE vectors, since the change of variables is done over those variables => we are already in the right basis, no need to recompute quantities every time
   ROOT::Math::PxPyPzEVector p3(p3gen);
@@ -86,7 +86,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   ROOT::Math::PxPyPzEVector p6(p6gen);
   ROOT::Math::PxPyPzEVector Met(RecMet);
 
-  //cout << "Final TF = " << TFValue << endl;
+  //cout << "Final TF = " << TFreturnValue << endl;
 
   // We flatten the Breit-Wigners by doing a change of variable for each resonance separately
   // s = M G tan(y) + M^2
@@ -255,29 +255,37 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     };
 
     // Evaluate matrix element
-    map< pair<int, int>, double > matrixElements = getMatrixElements(initialMomenta, finalState);
+    std::map< std::pair<int, int>, double > matrixElements = getMatrixElements(initialMomenta, finalState);
 
-    double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFValue;
-    
-    // Loop over the different initial states
-    // compute PDFs and matrix elements
+    double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFreturnValue;
+
     double pdfMESum = 0.;
-    for(auto const &initialState: _initialStates){
-      const double pdf1 = ComputePdf(initialState.first, x1, SQ(M_T));
-      const double pdf2 = ComputePdf(initialState.second, x2, SQ(M_T));
-  
-      pdfMESum += matrixElements[initialState] * pdf1 * pdf2;
-      //cout << "Initial state (" << initialState.first << ", " << initialState.second << "): " << matrixElements[initialState] << endl;
+    // If no initial states have been defined explicitly, loop over all states returned by the matrix element
+    if(!_initialStates.size()){
+      for(auto const &me: matrixElements){
+        const double pdf1 = ComputePdf(me.first.first, x1, SQ(M_T));
+        const double pdf2 = ComputePdf(me.first.second, x2, SQ(M_T));
+        pdfMESum += me.second * pdf1 * pdf2;
+        //cout << "Initial state (" << me.first.first << ", " << me.first.second << "): " << me.second << endl;
+      }
+    }else{
+      // Otherwise, loop over all states defined by user
+      for(auto const &initialState: _initialStates){
+        const double pdf1 = ComputePdf(initialState.first, x1, SQ(M_T));
+        const double pdf2 = ComputePdf(initialState.second, x2, SQ(M_T));
+        pdfMESum += matrixElements[initialState] * pdf1 * pdf2;
+        //cout << "Initial state (" << initialState.first << ", " << initialState.second << "): " << matrixElements[initialState] << endl;
+      }
     }
 
     thisSolResult *= pdfMESum;
-    Value += thisSolResult; 
+    returnValue += thisSolResult; 
     
     // Check whether the next solutions for the neutrinos are the same => don't redo all this!
     int countEqualSol = 1;
     for(unsigned int j = i+1; j<p1vec.size(); j++){
       if(p1 == p1vec.at(j) && p2 == p2vec.at(j)){
-        Value += thisSolResult;
+        returnValue += thisSolResult;
         countEqualSol++;
       }
     }
@@ -292,5 +300,5 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
   //cout << "## Phase Space point done. Integrand = " << integrand << ", flatterjac = " << flatterJac << ", prod = " << integrand*flatterJac <<  endl;
 
-  return Value;
+  return returnValue;
 }
