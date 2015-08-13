@@ -2,10 +2,14 @@
 #define _INC_UTILS
 
 #include <vector>
+#define _USE_MATH_DEFINES // include M_PI constant
+#include <cmath>
 
 #define SQ(x) (x*x)
 #define CB(x) (x*x*x)
 #define QU(x) (x*x*x*x)
+
+//#define M_PI 3.1415927410125732421875
 
 // Set option flags for CUBA integrator
 // 
@@ -34,11 +38,31 @@ template<typename T> T sign(const T x){
 }
 
 // Used to compute Jacobian for Transfer Function
-double dEoverdP(const double E, const double m);
+inline double dEoverdP(const double E, const double m){
+  const double rad = SQ(E) - SQ(m);
+  if(rad <= 0)
+    return 0.;
+  else
+    return E/sqrt(rad);
+}
+
+// We flatten the Breit-Wigners by doing a change of variable for each resonance separately
+// s = M G tan(y) + M^2
+// jac = M G / cos^2(y)
+// ==> BW(s(y))*jac(y) is flat in the variable y, as BW(s) = 1/((s-M^2)^2 - (GM)^2)
+// Where y = -arctan(M/G) + (pi/2+arctan(M/G))*x_foam (x_foam between 0 and 1 => s between 0 and infinity)
+inline void flattenBW(const double psPoint, const double mass, const double width, double &s, double &jac){
+  const double range = M_PI/2. + atan(mass / width);
+  const double y = - atan(mass / width) + range * psPoint;
+  s = mass * width * tan(y) + SQ(mass);
+  jac = range * mass * width / SQ(cos(y));
+}
 
 // Compute cos(x +- 2*pi/3) in a more "analytical" way (pm = +- 1)
 // Useful for solveCubic
-double cosXpm2PI3(const double x, const double pm);
+inline double cosXpm2PI3(const double x, const double pm){
+  return -0.5*( cos(x) + pm * sin(x) * sqrt(3.) );
+}
 
 // Finds the real solutions to a*x^2 + b*x + c = 0
 // Uses a numerically more stable way than the "classroom" method.

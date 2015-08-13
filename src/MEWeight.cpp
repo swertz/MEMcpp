@@ -110,7 +110,7 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    360000,                 // (int) maximum number of integrand evaluations (approx.!)
+    60000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
     20000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations

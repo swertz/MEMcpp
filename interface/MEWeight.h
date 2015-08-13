@@ -22,7 +22,7 @@ int CUBAIntegrand(const int *nDim, const double* psPoint, const int *nComp, doub
 class MEWeight{
   public:
 
-  double Integrand(const double* Xarg, const double *weight);
+  double Integrand(const double* psPoint, const double *weight);
   inline double ComputePdf(const int &pid, const double &x, const double &q2);
   inline std::map< std::pair<int, int>, double > getMatrixElements(const std::vector< std::vector<double> > &initialMomenta, const std::vector< std::pair<int, std::vector<double> > > &finalState) const { return _process.sigmaKin(initialMomenta, finalState); }
   double ComputeWeight(double &error);

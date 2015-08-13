@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#define _USE_MATH_DEFINES // include M_PI constant
 #include <cmath>
 
 #include "Math/Vector4D.h"
@@ -21,11 +22,11 @@
 
 using namespace std;
 
-double MEWeight::Integrand(const double* Xarg, const double *weight){
+double MEWeight::Integrand(const double* psPoint, const double *weight){
   double returnValue = 0.;
 
   for(int i=0; i<4; ++i){
-    if(Xarg[i] == 1.)
+    if(psPoint[i] == 1.)
       return 0;
   }
 
@@ -46,7 +47,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   ROOT::Math::PtEtaPhiEVector p3gen = p3rec;
   const double E3rec = p3rec.E();
   const double p3DeltaRange = _TF->GetDeltaRange("electron", E3rec);
-  const double E3gen = E3rec - _TF->GetDeltaMax("electron", E3rec) + p3DeltaRange * Xarg[4];
+  const double E3gen = E3rec - _TF->GetDeltaMax("electron", E3rec) + p3DeltaRange * psPoint[4];
   const double pt3gen = sqrt( SQ(E3gen) - SQ(p3rec.M()) ) / cosh(p3rec.Eta());
   p3gen.SetCoordinates(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
   if(p3DeltaRange != 0.)
@@ -55,7 +56,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   ROOT::Math::PtEtaPhiEVector p5gen = p5rec;
   const double E5rec = p5rec.E();
   const double p5DeltaRange = _TF->GetDeltaRange("muon", E5rec);
-  const double E5gen = E5rec - _TF->GetDeltaMax("muon", E5rec) + p5DeltaRange * Xarg[6];
+  const double E5gen = E5rec - _TF->GetDeltaMax("muon", E5rec) + p5DeltaRange * psPoint[6];
   const double pt5gen = sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / cosh(p5rec.Eta());
   p5gen.SetCoordinates(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
   if(p5DeltaRange != 0.)
@@ -64,7 +65,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   ROOT::Math::PtEtaPhiEVector p4gen = p4rec;
   const double E4rec = p4rec.E();
   const double p4DeltaRange = _TF->GetDeltaRange("jet", E4rec);
-  const double E4gen = E4rec - _TF->GetDeltaMax("jet", E4rec) + p4DeltaRange * Xarg[5];
+  const double E4gen = E4rec - _TF->GetDeltaMax("jet", E4rec) + p4DeltaRange * psPoint[5];
   const double pt4gen = sqrt( SQ(E4gen) - SQ(p4rec.M()) ) / cosh(p4rec.Eta());
   p4gen.SetCoordinates(pt4gen, p4rec.Eta(), p4rec.Phi(), E4gen);
   if(p4DeltaRange != 0.)
@@ -73,7 +74,7 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   ROOT::Math::PtEtaPhiEVector p6gen = p6rec;
   const double E6rec = p6rec.E();
   const double p6DeltaRange = _TF->GetDeltaRange("jet", E6rec);
-  const double E6gen = p6rec.E() - _TF->GetDeltaMax("jet", E6rec) + p6DeltaRange * Xarg[7];
+  const double E6gen = p6rec.E() - _TF->GetDeltaMax("jet", E6rec) + p6DeltaRange * psPoint[7];
   const double pt6gen = sqrt( SQ(E6gen) - SQ(p6rec.M()) ) / cosh(p6rec.Eta());
   p6gen.SetCoordinates(pt6gen, p6rec.Eta(), p6rec.Phi(), E6gen);
   if(p6DeltaRange != 0.)
@@ -89,38 +90,14 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
   //cout << "Final TF = " << TFreturnValue << endl;
 
   // We flatten the Breit-Wigners by doing a change of variable for each resonance separately
-  // s = M G tan(y) + M^2
-  // jac = M G / cos^2(y)
-  // ==> BW(s(y))*jac(y) is flat in the variable y, as BW(s) = 1/((s-M^2)^2 - (GM)^2)
-  // Where y = -arctan(M/G) + (pi/2+arctan(M/G))*x_foam (x_foam between 0 and 1 => s between 0 and infinity)
-
-  const double range1 = TMath::Pi()/2. + atan(M_W/G_W);
-  const double y1 = - atan(M_W/G_W) + range1 * Xarg[0];
-  const double s13 = M_W * G_W * tan(y1) + SQ(M_W);
-
-  //cout << "y1=" << y1 << ", m13=" << sqrt(s13) << endl;
-
-  const double range2 = TMath::Pi()/2. + atan(M_T/G_T);
-  const double y2 = - atan(M_T/G_T) + range2 * Xarg[1];
-  const double s134 = M_T * G_T * tan(y2) + SQ(M_T);
-
-  //cout << "y2=" << y2 << ", m134=" << sqrt(s134) << endl;
-
-  const double range3 = TMath::Pi()/2. + atan(M_W/G_W);
-  const double y3 = - atan(M_W/G_W) + range3 * Xarg[2];
-  const double s25 = M_W * G_W * tan(y3) + SQ(M_W);
-
-  //cout << "y3=" << y3 << ", m25=" << sqrt(s25) << endl;
-
-  const double range4 = TMath::Pi()/2. + atan(M_T/G_T);
-  const double y4 = - atan(M_T/G_T) + range4 * Xarg[3];
-  const double s256 = M_T * G_T * tan(y4) + SQ(M_T);
-
-  //cout << "y4=" << y4 << ", m256=" << sqrt(s256) << endl;
-  
-  double flatterJac = range1 * range2 * range3 * range4;
-  flatterJac *= M_W*G_W * M_T*G_T * M_W*G_W * M_T*G_T;
-  flatterJac /= pow(cos(y1) * cos(y2) * cos(y3) * cos(y4), 2.);
+  // The new integration variables are now the Lorentz invariants of the Breit-Wigners (sXXX)
+  // Each transformation also brings about its jacobian factor
+  double s13, jac13, s134, jac134, s25, jac25, s256, jac256;
+  flattenBW(psPoint[0], M_W, G_W, s13, jac13);
+  flattenBW(psPoint[1], M_T, G_T, s134, jac134);
+  flattenBW(psPoint[2], M_W, G_W, s25, jac25);
+  flattenBW(psPoint[3], M_T, G_T, s256, jac256);
+  double flatterJac = jac13 * jac134 * jac25 * jac256;
 
   if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M())
     return 0;
@@ -202,10 +179,10 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
 
     // Compute phase space density for observed particles (not concerned by the change of variable)
     // dPhi = |P|^2 sin(theta)/(2*E*(2pi)^3)
-    const double dPhip3 = pow(p3.P(),2.)*TMath::Sin(p3.Theta())/(2.0*p3.E()*pow(2.*TMath::Pi(),3));
-    const double dPhip4 = pow(p4.P(),2.)*TMath::Sin(p4.Theta())/(2.0*p4.E()*pow(2.*TMath::Pi(),3));
-    const double dPhip5 = pow(p5.P(),2.)*TMath::Sin(p5.Theta())/(2.0*p5.E()*pow(2.*TMath::Pi(),3));
-    const double dPhip6 = pow(p6.P(),2.)*TMath::Sin(p6.Theta())/(2.0*p6.E()*pow(2.*TMath::Pi(),3));
+    const double dPhip3 = SQ(p3.P())*sin(p3.Theta())/(2.0*p3.E()*CB(2.*M_PI));
+    const double dPhip4 = SQ(p4.P())*sin(p4.Theta())/(2.0*p4.E()*CB(2.*M_PI));
+    const double dPhip5 = SQ(p5.P())*sin(p5.Theta())/(2.0*p5.E()*CB(2.*M_PI));
+    const double dPhip6 = SQ(p6.P())*sin(p6.Theta())/(2.0*p6.E()*CB(2.*M_PI));
     const double phaseSpaceOut = dPhip5 * dPhip6 * dPhip3 * dPhip4;
 
     // Boost the initial particle 4-momenta in order to match parton1 + parton2 = - ISR
@@ -246,12 +223,12 @@ double MEWeight::Integrand(const double* Xarg, const double *weight){
     // Define final PID and momenta to be passed to matrix element
     std::vector< std::pair<int, std::vector<double> > > finalState = 
     {
-      std::make_pair<int, std::vector<double>>(-11, { p3.E(), p3.Px(), p3.Py(), p3.Pz() }),
-      std::make_pair<int, std::vector<double>>(12, { p1.E(), p1.Px(), p1.Py(), p1.Pz() }),
-      std::make_pair<int, std::vector<double>>(5, { p4.E(), p4.Px(), p4.Py(), p4.Pz() }),
-      std::make_pair<int, std::vector<double>>(13, { p5.E(), p5.Px(), p5.Py(), p5.Pz() }),
-      std::make_pair<int, std::vector<double>>(-14, { p2.E(), p2.Px(), p2.Py(), p2.Pz() }),
-      std::make_pair<int, std::vector<double>>(-5, { p6.E(), p6.Px(), p6.Py(), p6.Pz() }),
+      std::make_pair<int, std::vector<double> >( -11, { p3.E(), p3.Px(), p3.Py(), p3.Pz() } ),
+      std::make_pair<int, std::vector<double> >(  12, { p1.E(), p1.Px(), p1.Py(), p1.Pz() } ),
+      std::make_pair<int, std::vector<double> >(   5, { p4.E(), p4.Px(), p4.Py(), p4.Pz() } ),
+      std::make_pair<int, std::vector<double> >(  13, { p5.E(), p5.Px(), p5.Py(), p5.Pz() } ),
+      std::make_pair<int, std::vector<double> >( -14, { p2.E(), p2.Px(), p2.Py(), p2.Pz() } ),
+      std::make_pair<int, std::vector<double> >(  -5, { p6.E(), p6.Px(), p6.Py(), p6.Pz() } ),
     };
 
     // Evaluate matrix element
