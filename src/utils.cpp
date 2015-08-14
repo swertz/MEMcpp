@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#define _USE_MATH_DEFINES // include M_PI constant
 #include <cmath>
 #include <stdlib.h>
 
@@ -30,33 +31,6 @@ unsigned int setFlags(char verbosity, bool subregion, bool retainStateFile, unsi
   cout << endl;
 
   return flags;
-}
-
-template<typename T> void swap(T &a, T &b){
-  T temp = a;
-  a = b;
-  b = temp;
-}
-
-template<typename T> T sign(const T x){
-  if(x > 0)
-    return 1;
-  else if(!x)
-    return 0;
-  else
-    return -1;
-}
-
-double dEoverdP(const double E, const double m){
-  const double rad = SQ(E) - SQ(m);
-  if(rad <= 0)
-    return 0.;
-  else
-    return E/sqrt(rad);
-}
-
-double cosXpm2PI3(const double x, const double pm){
-  return -0.5*( cos(x) + pm * sin(x) * sqrt(3.) );
 }
 
 bool solveQuadratic(const double a, const double b, const double c, std::vector<double>& roots, bool verbose){

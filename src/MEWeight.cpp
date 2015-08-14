@@ -1,8 +1,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
-
-#include "SubProcesses/P0_Sigma_sm_gg_epvebmumvmxbx/CPPProcess.h"
+#include <utility>
+#include <algorithm>
 
 #include "LHAPDF/LHAPDF.h"
 #include "LHAPDF/PDFSet.h"
@@ -23,39 +23,51 @@
 
 using namespace std;
 
-MEWeight::MEWeight(const std::string paramCardPath, const std::string pdfName, const std::string fileTF){
+MEWeight::MEWeight(CPPProcess &process, const std::string pdfName, const std::string fileTF):
+  _process(process),
+  _pdf( LHAPDF::mkPDF(pdfName, 0) ),
+  _recEvent( new MEEvent() ),
+  _TF( new TransferFunction(fileTF) ){
 
   cout << "Initializing Matrix Element computation with:" << endl;
-  cout << "Parameter card " << paramCardPath << endl;
   cout << "PDF " << pdfName << endl;
   cout << "TF file " << fileTF << endl;
-
-  process.initProc(paramCardPath);
-  pdf = LHAPDF::mkPDF(pdfName, 0);
-  myEvent = new MEEvent();
-  myTF = new TransferFunction(fileTF);
-}
-
-double MEWeight::ComputePdf(const int &pid, const double &x, const double &q2){
-  // return f(pid,x,q2)
-  if(x <= 0 || x >= 1 || q2 <= 0){
-    cout << "WARNING: PDF x or Q^2 value out of bounds!" << endl;
-    return 0.;
-  }else{
-    return pdf->xfxQ2(pid, x, q2)/x;
-  }
 }
 
 MEEvent* MEWeight::GetEvent(){
-  return myEvent;
+  return _recEvent;
 }
 
 void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met){
-  myEvent->SetVectors(ep, mum, b, bbar, met);
+  _recEvent->SetVectors(ep, mum, b, bbar, met);
 }
 
 void MEWeight::AddTF(const std::string particleName, const std::string histName){
-  myTF->DefineComponent(particleName, histName);
+  _TF->DefineComponent(particleName, histName);
+}
+
+void MEWeight::AddInitialState(int pid1, int pid2){
+  // We must have a quark or a gluon as initial state!
+  if( (abs(pid1) > 5 && pid1 != 21) || (abs(pid2) > 5 && pid2 != 21) ){
+    cerr << "Warning: initial state (" << pid1 << "," << pid2 << ") is not valid! I'm not including it.\n";
+    return;
+  }
+
+  // Sort the initial state PIDs in order to check more easily if they are already included
+  if(pid1 > pid2)
+    swap(pid1, pid2);
+  pair<int, int> initialState(pid1, pid2);
+
+  if( find(_initialStates.begin(), _initialStates.end(), initialState) == _initialStates.end() ){
+    _initialStates.push_back(initialState);
+    // Don't forget to add the crossed possibility if the initial particles are different
+    if(pid1 != pid2){
+      swap(initialState.first, initialState.second);
+      _initialStates.push_back(initialState);
+    }
+  }else{
+    cerr << "Warning: initial state (" << pid1 << "," << pid2 << ") has already been defined. I'm not including it again.\n";
+  }
 }
 
 double MEWeight::ComputeWeight(double &error){
@@ -97,7 +109,7 @@ double MEWeight::ComputeWeight(double &error){
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    350000,                 // (int) maximum number of integrand evaluations (approx.!)
+    360000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
     20000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
@@ -105,9 +117,9 @@ double MEWeight::ComputeWeight(double &error){
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
-    50000,                  // (int) number of new integrand evaluations in each subdivision
-    0,                      // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
-    2,                      // (int) exponent in the norm used to compute fluctuations of a sample
+    40000,                  // (int) number of new integrand evaluations in each subdivision
+    5000,                      // (int) minimum number of samples a previous iteration must contribute to a subregion, to be considered to that subregion's contribution to the integral
+    50,                      // (int) exponent in the norm used to compute fluctuations of a sample
 #endif
     "",                     // (char*) name of state file => state can be stored and retrieved for further refinement
     NULL,                   // (int*) "spinning cores": -1 || NULL <=> integrator takes care of starting & stopping child processes (other value => keep or retrieve child processes, probably not useful here)
@@ -134,20 +146,20 @@ double MEWeight::ComputeWeight(double &error){
 
 MEWeight::~MEWeight(){
   cout << "Deleting PDF" << endl;
-  delete pdf; pdf = nullptr;
+  delete _pdf; _pdf = nullptr;
   cout << "Deleting myEvent" << endl;
-  delete myEvent; myEvent = nullptr;
+  delete _recEvent; _recEvent = nullptr;
   cout << "Deleting myTF" << endl;
-  delete myTF; myTF = nullptr;
+  delete _TF; _TF = nullptr;
 }
 
-int CUBAIntegrand(const int *nDim, const double* Xarg, const int *nComp, double *Value, void *inputs, const int *nVec, const int *core, const double *weight){
+// Wrapper function passed to CUBA, simply calls MEWeight::Integrand (where the MEWeight instance is passed as "input" to the wrapper), passing the PS point and the weight
+int CUBAIntegrand(const int *nDim, const double* psPoint, const int *nComp, double *value, void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << "," << Xarg[4] << "," << Xarg[5] << "," << Xarg[6] << "," << Xarg[7] << "]" << endl;
   
-  MEWeight* myWeight = (MEWeight*) inputs;
-  *Value = myWeight->Integrand(Xarg, weight);
+  *value = static_cast<MEWeight*>(inputs)->Integrand(psPoint, weight);
 
   return 0;
 }
