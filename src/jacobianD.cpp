@@ -11,10 +11,12 @@
 using namespace std;
 
 int ComputeTransformD(const double &s13, const double &s134, const double &s25, const double &s256,
-                      const ROOT::Math::PxPyPzEVector &p3, const ROOT::Math::PxPyPzEVector &p4, const ROOT::Math::PxPyPzEVector &p5, const ROOT::Math::PxPyPzEVector &p6, const ROOT::Math::PxPyPzEVector &Met,
+                      const ROOT::Math::PxPyPzEVector &p3, const ROOT::Math::PxPyPzEVector &p4, const ROOT::Math::PxPyPzEVector &p5, const ROOT::Math::PxPyPzEVector &p6, const ROOT::Math::PxPyPzEVector &Met, const ROOT::Math::PxPyPzEVector &ISR,
                       std::vector<ROOT::Math::PxPyPzEVector> &p1, std::vector<ROOT::Math::PxPyPzEVector> &p2){
   // pT = transverse total momentum of the visible particles
-  ROOT::Math::PxPyPzEVector pT = p3 + p4 + p5 + p6;
+  // It will be used to reconstruct neutrinos, but we want to take into account the measured ISR (pt_isr = - pt_met - pt_vis),
+  // so we add pt_isr to pt_vis in order to have pt_vis + pt_nu + pt_isr = 0 as it should be.
+  ROOT::Math::PxPyPzEVector pT = p3 + p4 + p5 + p6 + ISR;
 
   const double p34 = p3.Dot(p4);
   const double p56 = p5.Dot(p6);
