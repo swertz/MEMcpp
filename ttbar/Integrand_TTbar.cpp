@@ -114,8 +114,8 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
 
   for(unsigned short i = 0; i < p1vec.size(); ++i){
 
-    const ROOT::Math::PxPyPzEVector p1 = p1vec.at(i);
-    const ROOT::Math::PxPyPzEVector p2 = p2vec.at(i);
+    const ROOT::Math::PxPyPzEVector &p1 = p1vec[i];
+    const ROOT::Math::PxPyPzEVector &p2 = p2vec[i];
 
     /*const ROOT::Math::PxPyPzEVector p13 = p1 + p3;
     const ROOT::Math::PxPyPzEVector p134 = p1 + p3 + p4;

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#define _USE_MATH_DEFINES // include M_PI constant
 #include <cmath>
 
 #include "Math/Vector4D.h"
@@ -132,35 +133,35 @@ int ComputeTransformD(const double &s13, const double &s134, const double &s25, 
 
 double computeJacobianD(const std::vector<ROOT::Math::PxPyPzEVector> &p, const double &sqrt_s){
   
-  const double E1  = p.at(0).E();
-  const double p1x = p.at(0).Px();
-  const double p1y = p.at(0).Py();
-  const double p1z = p.at(0).Pz();
+  const double E1  = p[0].E();
+  const double p1x = p[0].Px();
+  const double p1y = p[0].Py();
+  const double p1z = p[0].Pz();
 
-  const double E2  = p.at(1).E();
-  const double p2x = p.at(1).Px();
-  const double p2y = p.at(1).Py();
-  const double p2z = p.at(1).Pz();
+  const double E2  = p[1].E();
+  const double p2x = p[1].Px();
+  const double p2y = p[1].Py();
+  const double p2z = p[1].Pz();
 
-  const double E3  = p.at(2).E();
-  const double p3x = p.at(2).Px();
-  const double p3y = p.at(2).Py();
-  const double p3z = p.at(2).Pz();
+  const double E3  = p[2].E();
+  const double p3x = p[2].Px();
+  const double p3y = p[2].Py();
+  const double p3z = p[2].Pz();
 
-  const double E4  = p.at(3).E();
-  const double p4x = p.at(3).Px();
-  const double p4y = p.at(3).Py();
-  const double p4z = p.at(3).Pz();
+  const double E4  = p[3].E();
+  const double p4x = p[3].Px();
+  const double p4y = p[3].Py();
+  const double p4z = p[3].Pz();
 
-  const double E5  = p.at(4).E();
-  const double p5x = p.at(4).Px();
-  const double p5y = p.at(4).Py();
-  const double p5z = p.at(4).Pz();
+  const double E5  = p[4].E();
+  const double p5x = p[4].Px();
+  const double p5y = p[4].Py();
+  const double p5z = p[4].Pz();
 
-  const double E6  = p.at(5).E();
-  const double p6x = p.at(5).Px();
-  const double p6y = p.at(5).Py();
-  const double p6z = p.at(5).Pz();
+  const double E6  = p[5].E();
+  const double p6x = p[5].Px();
+  const double p6y = p[5].Py();
+  const double p6z = p[5].Pz();
 
   const double E34  = E3 + E4;
   const double p34x = p3x + p4x;
@@ -208,7 +209,7 @@ double computeJacobianD(const std::vector<ROOT::Math::PxPyPzEVector> &p, const d
                E2*(p34z*p3y*p56x - p34y*p3z*p56x - p34z*p3x*p56y + 
                   p34x*p3z*p56y))*p5z);
                   
-  inv_jac *= 8.*16.*SQ(TMath::Pi()*sqrt_s);
+  inv_jac *= 8.*16.*SQ(M_PI*sqrt_s);
 
   //std::cout << "jac=" << abs(jac) << std::endl;
   

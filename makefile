@@ -6,7 +6,7 @@ objs_dir := objs/
 # Just to get the includes needed to define CPPProcess class... Might have to be moved to this project?
 process_dir := /home/fynu/swertz/scratch/Madgraph/madgraph5/cpp_pp_ttx_fullylept/
 
-CXXFLAGS := -std=c++14 -O2 -g -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(include_dir) -I$(process_dir)
+CXXFLAGS := -std=c++14 -O3 -g -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(include_dir) -I$(process_dir)
 LDFLAGS := -lm $(shell root-config --libs --glibs) -lGenVector $(shell lhapdf-config --ldflags) -lcuba -lDelphes
 CXX := g++
 
