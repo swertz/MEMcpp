@@ -11,9 +11,15 @@
 
 using namespace std;
 
-int ComputeTransformD(const double &s13, const double &s134, const double &s25, const double &s256,
-                      const ROOT::Math::PxPyPzEVector &p3, const ROOT::Math::PxPyPzEVector &p4, const ROOT::Math::PxPyPzEVector &p5, const ROOT::Math::PxPyPzEVector &p6, const ROOT::Math::PxPyPzEVector &Met, const ROOT::Math::PxPyPzEVector &ISR,
-                      std::vector<ROOT::Math::PxPyPzEVector> &p1, std::vector<ROOT::Math::PxPyPzEVector> &p2){
+int ComputeTransformD(const double s13, const double s134, const double s25, const double s256,
+                      const ROOT::Math::PxPyPzEVector &p3, 
+                      const ROOT::Math::PxPyPzEVector &p4, 
+                      const ROOT::Math::PxPyPzEVector &p5, 
+                      const ROOT::Math::PxPyPzEVector &p6, 
+                      const ROOT::Math::PxPyPzEVector &Met, 
+                      const ROOT::Math::PxPyPzEVector &ISR,
+                      std::vector<ROOT::Math::PxPyPzEVector> &p1, std::vector<ROOT::Math::PxPyPzEVector> &p2
+                      ){
   // pT = transverse total momentum of the visible particles
   // It will be used to reconstruct neutrinos, but we want to take into account the measured ISR (pt_isr = - pt_met - pt_vis),
   // so we add pt_isr to pt_vis in order to have pt_vis + pt_nu + pt_isr = 0 as it should be.
@@ -131,37 +137,45 @@ int ComputeTransformD(const double &s13, const double &s134, const double &s25, 
   return p1.size();
 }
 
-double computeJacobianD(const std::vector<ROOT::Math::PxPyPzEVector> &p, const double &sqrt_s){
+double computeJacobianD(
+    const ROOT::Math::PxPyPzEVector &p1, 
+    const ROOT::Math::PxPyPzEVector &p2, 
+    const ROOT::Math::PxPyPzEVector &p3, 
+    const ROOT::Math::PxPyPzEVector &p4, 
+    const ROOT::Math::PxPyPzEVector &p5, 
+    const ROOT::Math::PxPyPzEVector &p6, 
+    const double sqrt_s
+    ){
   
-  const double E1  = p[0].E();
-  const double p1x = p[0].Px();
-  const double p1y = p[0].Py();
-  const double p1z = p[0].Pz();
+  const double E1  = p1.E();
+  const double p1x = p1.Px();
+  const double p1y = p1.Py();
+  const double p1z = p1.Pz();
 
-  const double E2  = p[1].E();
-  const double p2x = p[1].Px();
-  const double p2y = p[1].Py();
-  const double p2z = p[1].Pz();
+  const double E2  = p2.E();
+  const double p2x = p2.Px();
+  const double p2y = p2.Py();
+  const double p2z = p2.Pz();
 
-  const double E3  = p[2].E();
-  const double p3x = p[2].Px();
-  const double p3y = p[2].Py();
-  const double p3z = p[2].Pz();
+  const double E3  = p3.E();
+  const double p3x = p3.Px();
+  const double p3y = p3.Py();
+  const double p3z = p3.Pz();
 
-  const double E4  = p[3].E();
-  const double p4x = p[3].Px();
-  const double p4y = p[3].Py();
-  const double p4z = p[3].Pz();
+  const double E4  = p4.E();
+  const double p4x = p4.Px();
+  const double p4y = p4.Py();
+  const double p4z = p4.Pz();
 
-  const double E5  = p[4].E();
-  const double p5x = p[4].Px();
-  const double p5y = p[4].Py();
-  const double p5z = p[4].Pz();
+  const double E5  = p5.E();
+  const double p5x = p5.Px();
+  const double p5y = p5.Py();
+  const double p5z = p5.Pz();
 
-  const double E6  = p[5].E();
-  const double p6x = p[5].Px();
-  const double p6y = p[5].Py();
-  const double p6z = p[5].Pz();
+  const double E6  = p6.E();
+  const double p6x = p6.Px();
+  const double p6y = p6.Py();
+  const double p6z = p6.Pz();
 
   const double E34  = E3 + E4;
   const double p34x = p3x + p4x;
