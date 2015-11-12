@@ -3,11 +3,9 @@
 source_dir := src/
 include_dir := interface/
 objs_dir := objs/
-# Just to get the includes needed to define CPPProcess class... Might have to be moved to this project?
-process_dir := MatrixElements/TopEffTh_Interference/cpp_TopEffTh_pp_ttx_epem_NP2_QED1/
 
-CXXFLAGS := -std=c++14 -O3 -ftree-vectorizer-verbose=5 -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(include_dir) -I$(process_dir)
-LDFLAGS := -lm -fopenmp -fopenmp-simd $(shell root-config --libs --glibs) -lGenVector $(shell lhapdf-config --ldflags) -lcuba -lDelphes
+CXXFLAGS := -std=c++14 -O3 -g -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(include_dir) -I$(process_dir)
+LDFLAGS := $(shell root-config --libs) -lGenVector $(shell lhapdf-config --ldflags) -lcuba -lDelphes
 CXX := g++
 
 _common_objs := binnedTF.o jacobianD.o MEEvent.o MEWeight.o transferFunction.o utils.o
@@ -15,19 +13,19 @@ common_objs := $(patsubst %,$(objs_dir)/%,$(_common_objs))
 _common_deps := binnedTF.h jacobianD.h MEEvent.h MEWeight.h transferFunction.h utils.h
 common_deps := $(patsubst %,$(include_dir)/%,$(common_deps))
 
-#### TTbar specific variables
+#### TopEffTh specific variables
 
-ttbar_proc_dir := $(process_dir)
-ttbar_proc_obj := $(process_dir)/SubProcesses/P1_Sigma_TopEffTh_gg_epvebemvexbx/cpp_TopEffTh_pp_ttx_epem_NP2_QED1.o
+topeffth_proc_dir := MatrixElements/cpp_TopEffTh_pp_ttx_epem_NP2_QED1/
+topeffth_proc_obj := $(ttbar_proc_dir)/SubProcesses/P1_Sigma_TopEffTh_gg_epvebemvexbx/cpp_TopEffTh_pp_ttx_epem_NP2_QED1.o
 
-ttbar_dir := ttbar/
-ttbar_exec := $(ttbar_dir)/ME_ttbar
-_ttbar_objs := Integrand_TTbar.o ME_ttbar_main.o
-ttbar_objs := $(patsubst %,$(ttbar_dir)/%,$(_ttbar_objs))
+topeffth_dir := TopEffTh/
+topeffth_exec := $(ttbar_dir)/ME_TopEffTh
+_topeffth_objs := Integrand_TopEffTh.o ME_TopEffTh_main.o
+topeffth_objs := $(patsubst %,$(topeffth_dir)/%,$(_topeffth_objs))
 
 ##### Common targets
 
-all: ttbar
+all: topeffth
 
 $(objs_dir)/%.o: $(source_dir)/%.cpp $(common_deps) | $(objs_dir)
 	$(CXX) -c $< -o $@ $(CXXFLAGS)
@@ -35,24 +33,24 @@ $(objs_dir)/%.o: $(source_dir)/%.cpp $(common_deps) | $(objs_dir)
 $(objs_dir):
 	if [ ! -d $(objs_dir) ]; then mkdir $(objs_dir); fi
 
-#### TTbar specific targets
+#### TopEffTh specific targets
 
-ttbar: $(ttbar_exec)
+topeffth: $(topeffth_exec)
 
-$(ttbar_dir)/%.o: $(ttbar_dir)/%.cpp $(common_deps)
-	$(CXX) -c $< -o $@ $(CXXFLAGS) -I$(ttbar_proc_dir)
+$(topeffth_dir)/%.o: $(topeffth_dir)/%.cpp $(common_deps)
+	$(CXX) -c $< -o $@ $(CXXFLAGS) -I$(topeffth_proc_dir)
 
-$(ttbar_exec): $(common_objs) $(ttbar_objs) $(ttbar_proc_obj) 
-	$(CXX) -o $(ttbar_exec) $^ $(LDFLAGS) -L$(ttbar_proc_dir)/lib -lmodel_TopEffTh
+$(topeffth_exec): $(common_objs) $(topeffth_objs) $(topeffth_proc_obj) 
+	$(CXX) -o $(topeffth_exec) $^ $(LDFLAGS) -L$(topeffth_proc_dir)/lib -lmodel_TopEffTh
 
 #### Clean targets
 
-.PHONY: clean clean_ttbar
+.PHONY: clean clean_topeffth
 
-clean: clean_ttbar
+clean: clean_topeffth
 	-rm $(objs_dir)/*.o
 	-if [ -d $(objs_dir) -a ! "$(ls -A $(objs_dir))" ]; then rmdir $(objs_dir); fi
 
-clean_ttbar:
-	-rm $(ttbar_dir)/*.o
-	-if [ -e $(ttbar_exec) ]; then rm $(ttbar_exec); fi
+clean_topeffth:
+	-rm $(topeffth_dir)/*.o
+	-if [ -e $(topeffth_exec) ]; then rm $(topeffth_exec); fi
