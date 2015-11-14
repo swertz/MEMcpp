@@ -8,7 +8,9 @@
 #include <string> 
 #include <utility> 
 #include <vector> 
-#include <map> 
+#include <map>
+#include <iostream>
+#include <iomanip>
 
 #include "cpp_TopEffTh_pp_ttx_epem_NP2_QED1.h"
 #include "HelAmps_TopEffTh.h"
@@ -62,7 +64,9 @@ params(params)
 
   // Set the event specific parameters => here, do not change => set here once and for all
   params.setDependentParameters(); 
-  params.setDependentCouplings(); 
+  params.setDependentCouplings();
+  params.printIndependentParameters();
+  params.printDependentParameters();
 
   mapFinalStates[{-11, 12, 5, 11, -12, -5}] = 
   {
@@ -167,7 +171,7 @@ std::map < std::pair < int, int > , std::vector<double> >
       {
         double sum = 0.; 
         calculate_wavefunctions(perm, helicities[ihel]); 
-        std::vector<double> meTemp = (this->* (me.meCall))(); 
+        std::vector<double> meTemp = (this->* (me.meCall))();
         sum += firstNonZero(meTemp);
         addAlphaV2toV1(me_sum, meTemp, 1./me.denominator);
 
@@ -185,8 +189,9 @@ std::map < std::pair < int, int > , std::vector<double> >
           addAlphaV2toV1(me_mirror_sum, meTemp, 1./me.denominator);
         }
 
-        if( !sum)
+        if( !sum){
           me.goodHel[ihel] = false;
+        }
       }
     }
 
@@ -292,7 +297,7 @@ void cpp_TopEffTh_pp_ttx_epem_NP2_QED1::calculate_wavefunctions(const int
   FFFF1_6_0(w[19], w[6], w[11], w[20], -params.GC_10_83, 0., amp[38]); // O83qq
   FFFF1_6_0(w[19], w[6], w[11], w[20], 0., -params.GC_26, amp[41]); // O8dt
   amp[39] = amp[31]; //FFV5_0(w[11], w[6], w[22], params.GC_7, amp[39]); 
-  amp[40] = amp[32]; //OtG //FFV3_8_0(w[11], w[6], w[22], params.GC_145, params.GC_79, amp[40]); 
+  amp[40] = amp[32]; //OtG //FFV3_8_0(w[11], w[6], w[22], params.GC_145, params.GC_79, amp[40]);
 
 }
 
@@ -336,10 +341,12 @@ std::vector<double> cpp_TopEffTh_pp_ttx_epem_NP2_QED1::matrix_1_gg_ttx_t_wpb_wp_
         ztemp += cf[i][j] * jamp[j][sq1];
       for(int sq2 = 0; sq2 < nOps+1; sq2++)
       {
-        if(sq1 == 0 && sq2 > 0)
-          matrix[sq2-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
-        if(sq2 == 0 && sq1 > 0)
-          matrix[sq1-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 > 0)
+          matrix[sq2] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq2 == SM && sq1 > 0)
+          matrix[sq1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 == SM)
+          matrix[SM] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
       }
     }
   }
@@ -384,17 +391,19 @@ std::vector<double> cpp_TopEffTh_pp_ttx_epem_NP2_QED1::matrix_1_uux_ttx_t_wpb_wp
   std::vector<double> matrix(MAXOPS, 0.);
   for(int sq1 = 0; sq1 < nOps+1; sq1++ )
   {
-    for(int i = 0; i < 3; i++ )
+    for(int i = 0; i < 2; i++ )
     {
       ztemp = 0;
-      for(int j = 0; j < 3; j++ )
+      for(int j = 0; j < 2; j++ )
         ztemp += cf[i][j] * jamp[j][sq1];
       for(int sq2 = 0; sq2 < nOps+1; sq2++)
       {
-        if(sq1 == 0 && sq2 > 0)
-          matrix[sq2-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
-        if(sq2 == 0 && sq1 > 0)
-          matrix[sq1-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 > 0)
+          matrix[sq2] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq2 == SM && sq1 > 0)
+          matrix[sq1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 == SM)
+          matrix[SM] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
       }
     }
   }
@@ -439,17 +448,19 @@ std::vector<double> cpp_TopEffTh_pp_ttx_epem_NP2_QED1::matrix_1_ccx_ttx_t_wpb_wp
   std::vector<double> matrix(MAXOPS, 0.);
   for(int sq1 = 0; sq1 < nOps+1; sq1++ )
   {
-    for(int i = 0; i < 3; i++ )
+    for(int i = 0; i < 2; i++ )
     {
       ztemp = 0;
-      for(int j = 0; j < 3; j++ )
+      for(int j = 0; j < 2; j++ )
         ztemp += cf[i][j] * jamp[j][sq1];
       for(int sq2 = 0; sq2 < nOps+1; sq2++)
       {
-        if(sq1 == 0 && sq2 > 0)
-          matrix[sq2-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
-        if(sq2 == 0 && sq1 > 0)
-          matrix[sq1-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 > 0)
+          matrix[sq2] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq2 == SM && sq1 > 0)
+          matrix[sq1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 == SM)
+          matrix[SM] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
       }
     }
   }
@@ -494,17 +505,19 @@ std::vector<double> cpp_TopEffTh_pp_ttx_epem_NP2_QED1::matrix_1_ddx_ttx_t_wpb_wp
   std::vector<double> matrix(MAXOPS, 0.);
   for(int sq1 = 0; sq1 < nOps+1; sq1++ )
   {
-    for(int i = 0; i < 3; i++ )
+    for(int i = 0; i < 2; i++ )
     {
       ztemp = 0;
-      for(int j = 0; j < 3; j++ )
+      for(int j = 0; j < 2; j++ )
         ztemp += cf[i][j] * jamp[j][sq1];
       for(int sq2 = 0; sq2 < nOps+1; sq2++)
       {
-        if(sq1 == 0 && sq2 > 0)
-          matrix[sq2-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
-        if(sq2 == 0 && sq1 > 0)
-          matrix[sq1-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 > 0)
+          matrix[sq2] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq2 == SM && sq1 > 0)
+          matrix[sq1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 == SM)
+          matrix[SM] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
       }
     }
   }
@@ -549,17 +562,19 @@ std::vector<double> cpp_TopEffTh_pp_ttx_epem_NP2_QED1::matrix_1_ssx_ttx_t_wpb_wp
   std::vector<double> matrix(MAXOPS, 0.);
   for(int sq1 = 0; sq1 < nOps+1; sq1++ )
   {
-    for(int i = 0; i < 3; i++ )
+    for(int i = 0; i < 2; i++ )
     {
       ztemp = 0;
-      for(int j = 0; j < 3; j++ )
+      for(int j = 0; j < 2; j++ )
         ztemp += cf[i][j] * jamp[j][sq1];
       for(int sq2 = 0; sq2 < nOps+1; sq2++)
       {
-        if(sq1 == 0 && sq2 > 0)
-          matrix[sq2-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
-        if(sq2 == 0 && sq1 > 0)
-          matrix[sq1-1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 > 0)
+          matrix[sq2] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq2 == SM && sq1 > 0)
+          matrix[sq1] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
+        if(sq1 == SM && sq2 == SM)
+          matrix[SM] += real(ztemp * conj(jamp[i][sq2]))/denom[i];
       }
     }
   }

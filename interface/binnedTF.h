@@ -3,6 +3,7 @@
 
 #include <string>
 #include <algorithm>
+#include <memory>
 
 #include "TH2.h"
 #include "TFile.h"
@@ -10,8 +11,8 @@
 class BinnedTF{
   public:
 
-  BinnedTF(const std::string particleName, const std::string histName, TFile* file);
-  ~BinnedTF();
+  BinnedTF(const std::string particleName, const std::string histName, std::unique_ptr<TFile>& file);
+  ~BinnedTF() {};
   inline double Evaluate(const double &Erec, const double &Egen) const;
   inline double GetDeltaRange(const double &Erec) const;
   inline double GetDeltaMin(const double &Erec) const;
@@ -23,7 +24,7 @@ class BinnedTF{
   double _histDeltaMin, _histDeltaMax;
   double _deltaMin, _deltaMax, _deltaRange;
   double _EgenMax, _EgenMin;
-  const TH2D* _TF;
+  std::unique_ptr<TH2D> _TF;
 };
 
 inline double BinnedTF::Evaluate(const double &Erec, const double &Egen) const {

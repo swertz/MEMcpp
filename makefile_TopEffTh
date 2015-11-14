@@ -4,7 +4,7 @@ source_dir := src/
 include_dir := interface/
 objs_dir := objs/
 
-CXXFLAGS := -std=c++14 -O3 -g -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(include_dir) -I$(process_dir)
+CXXFLAGS := -O3 -g -Wall $(shell root-config --cflags) $(shell lhapdf-config --cflags) -I$(include_dir)
 LDFLAGS := $(shell root-config --libs) -lGenVector $(shell lhapdf-config --ldflags) -lcuba -lDelphes
 CXX := g++
 
@@ -16,10 +16,11 @@ common_deps := $(patsubst %,$(include_dir)/%,$(common_deps))
 #### TopEffTh specific variables
 
 topeffth_proc_dir := MatrixElements/cpp_TopEffTh_pp_ttx_epem_NP2_QED1/
-topeffth_proc_obj := $(ttbar_proc_dir)/SubProcesses/P1_Sigma_TopEffTh_gg_epvebemvexbx/cpp_TopEffTh_pp_ttx_epem_NP2_QED1.o
+topeffth_me_dir := $(topeffth_proc_dir)/SubProcesses/P1_Sigma_TopEffTh_gg_epvebemvexbx/
+topeffth_proc_obj := $(topeffth_me_dir)/cpp_TopEffTh_pp_ttx_epem_NP2_QED1.o
 
 topeffth_dir := TopEffTh/
-topeffth_exec := $(ttbar_dir)/ME_TopEffTh
+topeffth_exec := $(topeffth_dir)/ME_TopEffTh
 _topeffth_objs := Integrand_TopEffTh.o ME_TopEffTh_main.o
 topeffth_objs := $(patsubst %,$(topeffth_dir)/%,$(_topeffth_objs))
 
@@ -28,12 +29,15 @@ topeffth_objs := $(patsubst %,$(topeffth_dir)/%,$(_topeffth_objs))
 all: topeffth
 
 $(objs_dir)/%.o: $(source_dir)/%.cpp $(common_deps) | $(objs_dir)
-	$(CXX) -c $< -o $@ $(CXXFLAGS)
+	$(CXX) -c $< -o $@ $(CXXFLAGS) -I$(topeffth_proc_dir)
 
 $(objs_dir):
 	if [ ! -d $(objs_dir) ]; then mkdir $(objs_dir); fi
 
 #### TopEffTh specific targets
+
+$(topeffth_proc_obj): $(topeffth_me_dir)/*.cc
+	pushd $(topeffth_me_dir) && make && pushd
 
 topeffth: $(topeffth_exec)
 

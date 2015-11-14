@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <stdlib.h>
+#include <memory>
 
 #include "TFile.h"
 
@@ -14,7 +15,7 @@ class TransferFunction{
   public:
 
   TransferFunction(const std::string file);
-  ~TransferFunction();
+  ~TransferFunction() {};
 
   void DefineComponent(const std::string particleName, const std::string histName);
 
@@ -22,12 +23,13 @@ class TransferFunction{
   inline double GetDeltaRange(const std::string &particleName, const double &Erec);
   inline double GetDeltaMin(const std::string &particleName, const double &Erec);
   inline double GetDeltaMax(const std::string &particleName, const double &Erec);
+  void Close();
 
   private:
 
-  TFile* _file;
+  std::unique_ptr<TFile> _file;
 
-  std::map< std::string, BinnedTF* > _TF;
+  std::map< std::string, std::unique_ptr<BinnedTF> > _TF;
 };
 
 inline double TransferFunction::Evaluate(const std::string &particleName, const double &Erec, const double &Egen){

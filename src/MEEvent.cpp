@@ -2,10 +2,14 @@
 
 #include "MEEvent.h"
 
-void MEEvent::SetVectors(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met){
-  _p3 = ep;
-  _p5 = mum;
-  _p4 = b;
-  _p6 = bbar;
+void MEEvent::SetVectors(const ROOT::Math::PtEtaPhiEVector &lep1, const ROOT::Math::PtEtaPhiEVector &lep2, const ROOT::Math::PtEtaPhiEVector &bjet1, const ROOT::Math::PtEtaPhiEVector &bjet2, const ROOT::Math::PtEtaPhiEVector &met){
+  _p3 = lep1;
+  _p5 = lep2;
+  _p4 = bjet1;
+  _p6 = bjet2;
   _Met = met;
+}
+
+void MEEvent::SetLepType(LepType lepType){
+  _lepType = lepType;
 }

@@ -36,12 +36,13 @@ MEWeight::MEWeight(CPPProcess &process, const std::string pdfName, const std::st
   cout << "TF file " << fileTF << endl;
 }
 
-MEEvent* MEWeight::GetEvent(){
+std::unique_ptr<MEEvent>& MEWeight::GetEvent(){
   return _recEvent;
 }
 
-void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met){
-  _recEvent->SetVectors(ep, mum, b, bbar, met);
+void MEWeight::SetEvent(const ROOT::Math::PtEtaPhiEVector &lep1, const ROOT::Math::PtEtaPhiEVector &lep2, const ROOT::Math::PtEtaPhiEVector &bjet1, const ROOT::Math::PtEtaPhiEVector &bjet2, const ROOT::Math::PtEtaPhiEVector &met, LepType lepType){
+  _recEvent->SetVectors(lep1, lep2, bjet1, bjet2, met);
+  _recEvent->SetLepType(lepType);
 }
 
 void MEWeight::AddTF(const std::string particleName, const std::string histName){
@@ -76,15 +77,16 @@ void MEWeight::SetISRCorrection(const ISRCorrection newISRCorrection){
   _isrCorrection = newISRCorrection;
 }
 
-double MEWeight::ComputeWeight(double &error){
-  
+void MEWeight::ComputeWeight(std::vector<double> &weights, std::vector<double> &errors){
+ 
+  _TF->Close();
   cout << "Initializing integration..." << endl;
 
   int neval, nfail;
 #ifdef SUAVE 
   int nsubregions;
 #endif
-  double mcResult=0, prob=0;
+  std::vector<double> prob(hypothesisNames.size(), 0);
   
   char verbosity = 3; // 0-3
   bool subregion = false; // true = only last set of samples is used for final evaluation of integral
@@ -106,20 +108,20 @@ double MEWeight::ComputeWeight(double &error){
 #endif
   (
     9,                      // (int) dimensions of the integrated volume
-    1,                      // (int) dimensions of the integrand
+    hypothesisNames.size(),                      // (int) dimensions of the integrand
     (integrand_t) CUBAIntegrand,  // (integrand_t) integrand (cast to integrand_t)
     (void*) this,           // (void*) pointer to additional arguments passed to integrand
     1,                      // (int) maximum number of points given the integrand in each invocation (=> SIMD) ==> PS points = vector of sets of points (x[ndim][nvec]), integrand returns vector of vector values (f[ncomp][nvec])
-    0.005,                  // (double) requested relative accuracy  /
+    0.01,                  // (double) requested relative accuracy  /
     0.,                     // (double) requested absolute accuracy /-> error < max(rel*value,abs)
     flags,                  // (int) various control flags in binary format, see setFlags function
     0,                      // (int) seed (seed==0 => SOBOL; seed!=0 && control flag "level"==0 => Mersenne Twister)
     0,                      // (int) minimum number of integrand evaluations
-    400000,                 // (int) maximum number of integrand evaluations (approx.!)
+    1200000,                 // (int) maximum number of integrand evaluations (approx.!)
 #ifdef VEGAS
-    25000,                  // (int) number of integrand evaluations per interations (to start)
+    30000,                  // (int) number of integrand evaluations per interations (to start)
     0,                      // (int) increase in number of integrand evaluations per interations
-    12500,                   // (int) batch size for sampling
+    30000,                   // (int) batch size for sampling
     0,                      // (int) grid number, 1-10 => up to 10 grids can be stored, and re-used for other integrands (provided they are not too different)
 #endif
 #ifdef SUAVE 
@@ -134,38 +136,30 @@ double MEWeight::ComputeWeight(double &error){
 #endif
     &neval,                 // (int*) actual number of evaluations done
     &nfail,                 // 0=desired accuracy was reached; -1=dimensions out of range; >0=accuracy was not reached
-    &mcResult,              // (double*) integration result ([ncomp])
-    &error,                 // (double*) integration error ([ncomp])
-    &prob                   // (double*) Chi-square p-value that error is not reliable (ie should be <0.95) ([ncomp])
+    &weights[0],              // (double*) integration result ([ncomp])
+    &errors[0],                 // (double*) integration error ([ncomp])
+    &prob[0]                   // (double*) Chi-square p-value that error is not reliable (ie should be <0.95) ([ncomp])
   );
   
   cout << "Integration done." << endl;
 
-  cout << " mcResult= " << mcResult << " +- " << error << " in " << neval << " evaluations. Chi-square prob. = " << prob << endl << endl;
+  for(size_t i = 0; i < weights.size(); i++){
+    cout << " Weight[" << i << "] = " << weights[i] << " +- " << errors[i] << " in " << neval << " evaluations. Chi-square prob. = " << prob[i] << endl;
 
-  if(std::isnan(error))
-  error = 0.;
-  if(std::isnan(mcResult))
-  mcResult = 0.;
-  return mcResult;
-}
-
-MEWeight::~MEWeight(){
-  cout << "Deleting PDF" << endl;
-  delete _pdf; _pdf = nullptr;
-  cout << "Deleting myEvent" << endl;
-  delete _recEvent; _recEvent = nullptr;
-  cout << "Deleting myTF" << endl;
-  delete _TF; _TF = nullptr;
+    if(std::isnan(errors[i]))
+    errors[i] = 0.;
+    if(std::isnan(weights[i]))
+    weights[i] = 0.;
+  }
 }
 
 // Wrapper function passed to CUBA, simply calls MEWeight::Integrand (where the MEWeight instance is passed as "input" to the wrapper), passing the PS point and the weight
-int CUBAIntegrand(const int *nDim, const double* psPoint, const int *nComp, double *value, void *inputs, const int *nVec, const int *core, const double *weight){
+int CUBAIntegrand(const int *nDim, const double psPoint[], const int *nComp, double value[], void *inputs, const int *nVec, const int *core, const double *weight){
   //cout << endl << endl << endl << "########## Starting phase-space point ############" << endl << endl;
 
   //cout << "Inputs = [" << Xarg[0] << "," << Xarg[1] << "," << Xarg[2] << "," << Xarg[3] << "," << Xarg[4] << "," << Xarg[5] << "," << Xarg[6] << "," << Xarg[7] << "]" << endl;
-  
-  *value = static_cast<MEWeight*>(inputs)->Integrand(psPoint, weight);
+
+  static_cast<MEWeight*>(inputs)->Integrand(psPoint, weight, value);
 
   return 0;
 }

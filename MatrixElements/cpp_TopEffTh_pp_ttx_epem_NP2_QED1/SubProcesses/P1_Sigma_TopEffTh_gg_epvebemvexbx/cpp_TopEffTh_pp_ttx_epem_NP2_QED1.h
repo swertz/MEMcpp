@@ -12,6 +12,8 @@
 #include <vector> 
 #include <utility> 
 #include <map> 
+#include <iostream>
+#include <iomanip>
 
 #include "../../src/Parameters_TopEffTh.h"
 #include "../../src/process_base_classes.h"
@@ -24,7 +26,7 @@
 #define O83QQ 5
 #define O8UT 6
 #define O8DT 7
-#define MAXOPS 7
+#define MAXOPS 8
 
 //==========================================================================
 // A class for calculating the matrix elements for
@@ -67,9 +69,11 @@ inline void addAlphaV2toV1(std::vector<double> &v1, const std::vector<double> &v
 
 inline double firstNonZero(const std::vector<double> &v){
   for(size_t i = 0; i < v.size(); ++i){
-    if(v[i] != 0)
+    if(v[i] != 0){
       return std::abs(v[i]);
+    }
   }
+  return 0.;
 }
 
 // Forward declaration needed to template correctly __MatrixElement in the class

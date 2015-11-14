@@ -11,8 +11,10 @@
 #include "MEWeight.h"
 #include "jacobianD.h"
 #include "utils.h"
+#include "TopEffTh/TopEffTh.h"
+#include "SubProcesses/P1_Sigma_TopEffTh_gg_epvebemvexbx/cpp_TopEffTh_pp_ttx_epem_NP2_QED1.h"
 
-#define M_T 173.
+#define M_T 173.2
 #define G_T 1.4915
 
 #define M_W 80.419
@@ -20,14 +22,14 @@
 
 #define SQRT_S 13000
 
-double MEWeight::Integrand(const double* psPoint, const double *weight){
+void MEWeight::Integrand(const double* psPoint, const double *weight, double * const matrixElements){
   using namespace std;
 
-  double returnValue = 0.;
+  std::vector<double> returnValues(hypothesisNames.size(), 0.);
 
   for(int i=0; i<4; ++i){
     if(psPoint[i] == 1.)
-      return 0;
+      return;
   }
 
   // Handle the 2 b-jet permutations using Monte Carlo
@@ -50,26 +52,37 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
   ROOT::Math::PxPyPzEVector ISR( -(p3rec + p4rec + p5rec + p6rec + RecMet) );
 
   ///// Transfer functions
+  
+  LepType myLepType = _recEvent->GetLepType();
+  string lep1TF, lep2TF;
+  if(myLepType == LepType::EE || myLepType == LepType::EMu)
+    lep1TF = "electron";
+  if(myLepType == LepType::MuMu || myLepType == LepType::MuE)
+    lep1TF = "muon";
+  if(myLepType == LepType::EE || myLepType == LepType::MuE)
+    lep2TF = "electron";
+  if(myLepType == LepType::MuMu || myLepType == LepType::EMu)
+    lep2TF = "muon";
 
   double TFreturnValue = 1.;
 
   ROOT::Math::PtEtaPhiEVector p3gen = p3rec;
   const double E3rec = p3rec.E();
-  const double p3DeltaRange = _TF->GetDeltaRange("electron", E3rec);
-  const double E3gen = E3rec - _TF->GetDeltaMax("electron", E3rec) + p3DeltaRange * psPoint[4];
+  const double p3DeltaRange = _TF->GetDeltaRange(lep1TF, E3rec);
+  const double E3gen = E3rec - _TF->GetDeltaMax(lep1TF, E3rec) + p3DeltaRange * psPoint[4];
   const double pt3gen = sqrt( SQ(E3gen) - SQ(p3rec.M()) ) / cosh(p3rec.Eta());
   p3gen.SetCoordinates(pt3gen, p3rec.Eta(), p3rec.Phi(), E3gen);
   if(p3DeltaRange != 0.)
-    TFreturnValue *= _TF->Evaluate("electron", E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
+    TFreturnValue *= _TF->Evaluate(lep1TF, E3rec, E3gen) * p3DeltaRange * dEoverdP(E3gen, p3gen.M());
 
   ROOT::Math::PtEtaPhiEVector p5gen = p5rec;
   const double E5rec = p5rec.E();
-  const double p5DeltaRange = _TF->GetDeltaRange("muon", E5rec);
-  const double E5gen = E5rec - _TF->GetDeltaMax("muon", E5rec) + p5DeltaRange * psPoint[6];
+  const double p5DeltaRange = _TF->GetDeltaRange(lep2TF, E5rec);
+  const double E5gen = E5rec - _TF->GetDeltaMax(lep2TF, E5rec) + p5DeltaRange * psPoint[6];
   const double pt5gen = sqrt( SQ(E5gen) - SQ(p5rec.M()) ) / cosh(p5rec.Eta());
   p5gen.SetCoordinates(pt5gen, p5rec.Eta(), p5rec.Phi(), E5gen);
   if(p5DeltaRange != 0.)
-    TFreturnValue *= _TF->Evaluate("muon", E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
+    TFreturnValue *= _TF->Evaluate(lep2TF, E5rec, E5gen) * p5DeltaRange * dEoverdP(E5gen, p5gen.M());
 
   ROOT::Math::PtEtaPhiEVector p4gen = p4rec;
   const double E4rec = p4rec.E();
@@ -109,7 +122,7 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
   double flatterJac = jac13 * jac134 * jac25 * jac256;
 
   if(s13 > s134 || s25 > s256 || s13 < p3.M() || s25 < p5.M() || s134 < p4.M() || s256 < p6.M())
-    return 0;
+    return;
 
   //cout << "weight = " << *weight << endl;
   
@@ -265,43 +278,47 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
       std::make_pair<int, std::vector<double> >( -11, { p3.E(), p3.Px(), p3.Py(), p3.Pz() } ),
       std::make_pair<int, std::vector<double> >(  12, { p1.E(), p1.Px(), p1.Py(), p1.Pz() } ),
       std::make_pair<int, std::vector<double> >(   5, { p4.E(), p4.Px(), p4.Py(), p4.Pz() } ),
-      std::make_pair<int, std::vector<double> >(  13, { p5.E(), p5.Px(), p5.Py(), p5.Pz() } ),
-      std::make_pair<int, std::vector<double> >( -14, { p2.E(), p2.Px(), p2.Py(), p2.Pz() } ),
+      std::make_pair<int, std::vector<double> >(  11, { p5.E(), p5.Px(), p5.Py(), p5.Pz() } ),
+      std::make_pair<int, std::vector<double> >( -12, { p2.E(), p2.Px(), p2.Py(), p2.Pz() } ),
       std::make_pair<int, std::vector<double> >(  -5, { p6.E(), p6.Px(), p6.Py(), p6.Pz() } ),
     };
 
     // Evaluate matrix element
-    std::map< std::pair<int, int>, double > matrixElements = getMatrixElements(initialMomenta, finalState);
+    std::map< std::pair<int, int>, std::vector<double> > matrixElements;
+    getMatrixElements(initialMomenta, finalState, matrixElements);
 
-    double thisSolResult = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFreturnValue;
+    std::vector<double> thisSolResults(hypothesisNames.size(), 0.);
+    double thisSolFactor = phaseSpaceIn * phaseSpaceOut * jacobian * flatterJac * TFreturnValue;
 
-    double pdfMESum = 0.;
     // If no initial states have been defined explicitly, loop over all states returned by the matrix element
     if(!_initialStates.size()){
       for(auto const &me: matrixElements){
         const double pdf1 = ComputePdf(me.first.first, x1, SQ(M_T));
         const double pdf2 = ComputePdf(me.first.second, x2, SQ(M_T));
-        pdfMESum += me.second * pdf1 * pdf2;
-        //cout << "Initial state (" << me.first.first << ", " << me.first.second << "): " << me.second << endl;
+        for(size_t i = 0; i < hypothesisNames.size(); ++i){
+          thisSolResults[i] += me.second[i] * pdf1 * pdf2 * thisSolFactor;
+          //cout << "Initial state (" << me.first.first << ", " << me.first.second << "), hypo. " << hypothesisNames[i] << ": " << matrixElements[std::make_pair(me.first.first, me.first.second)][i] << endl;
+        }
       }
     }else{
       // Otherwise, loop over all states defined by user
       for(auto const &initialState: _initialStates){
         const double pdf1 = ComputePdf(initialState.first, x1, SQ(M_T));
         const double pdf2 = ComputePdf(initialState.second, x2, SQ(M_T));
-        pdfMESum += matrixElements[initialState] * pdf1 * pdf2;
-        //cout << "Initial state (" << initialState.first << ", " << initialState.second << "): " << matrixElements[initialState] << endl;
+        for(size_t i = 0; i < hypothesisNames.size(); ++i){
+          thisSolResults[i] += matrixElements[initialState][i] * pdf1 * pdf2 * thisSolFactor;
+          //cout << "Initial state (" << initialState.first << ", " << initialState.second << "), hypo. " << hypothesisNames[i] << ": " << matrixElements[initialState] << endl;
+        }
       }
     }
 
-    thisSolResult *= pdfMESum;
-    returnValue += thisSolResult; 
+    addV2toV1(returnValues, thisSolResults); 
     
     // Check whether the next solutions for the neutrinos are the same => don't redo all this!
     int countEqualSol = 1;
     for(unsigned int j = i+1; j<p1vec.size(); j++){
       if(p1 == p1vec.at(j) && p2 == p2vec.at(j)){
-        returnValue += thisSolResult;
+        addV2toV1(returnValues, thisSolResults); 
         countEqualSol++;
       }
     }
@@ -311,7 +328,9 @@ double MEWeight::Integrand(const double* psPoint, const double *weight){
     countSol += countEqualSol;
   }
 
-  //cout << "## Phase Space point done. Integrand = " << returnValue << endl; 
-
-  return returnValue;
+  //cout << "## Phase Space point done. Integrand = " << returnValue << endl;
+  for(size_t i = 0; i < hypothesisNames.size(); i++){
+    matrixElements[i] = returnValues[i]; 
+    //cout << "Integrand[" << i << "] = " << returnValues[i] << endl;
+  }
 }

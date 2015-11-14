@@ -6,7 +6,7 @@
 #include <utility>
 #include <memory>
 
-#include "process_base_classes.h"
+#include "src/process_base_classes.h"
 
 #include "LHAPDF/LHAPDF.h"
 #include "LHAPDF/PDFSet.h"
@@ -15,8 +15,9 @@
 
 #include "transferFunction.h"
 #include "MEEvent.h"
+#include "TopEffTh/TopEffTh.h"
 
-int CUBAIntegrand(const int *nDim, const double* psPoint, const int *nComp, double *value, void *inputs, const int *nVec, const int *core, const double *weight);
+int CUBAIntegrand(const int *nDim, const double psPoint[], const int *nComp, double value[], void *inputs, const int *nVec, const int *core, const double *weight);
 
 enum class ISRCorrection {
   noCorrection = 0,
@@ -26,26 +27,26 @@ enum class ISRCorrection {
 class MEWeight{
   public:
 
-  double Integrand(const double* psPoint, const double *weight);
+  void Integrand(const double* psPoint, const double *weight, double * const matrixElements);
   inline double ComputePdf(const int &pid, const double &x, const double &q2);
-  inline std::map< std::pair<int, int>, double > getMatrixElements(const std::vector< std::vector<double> > &initialMomenta, const std::vector< std::pair<int, std::vector<double> > > &finalState) const { return _process.sigmaKin(initialMomenta, finalState); }
-  double ComputeWeight(double &error);
-  MEEvent* GetEvent();
-  void SetEvent(const ROOT::Math::PtEtaPhiEVector &ep, const ROOT::Math::PtEtaPhiEVector &mum, const ROOT::Math::PtEtaPhiEVector &b, const ROOT::Math::PtEtaPhiEVector &bbar, const ROOT::Math::PtEtaPhiEVector &met);
+  inline void getMatrixElements(const std::vector< std::vector<double> > &initialMomenta, const std::vector< std::pair<int, std::vector<double> > > &finalState, std::map< std::pair<int, int>, std::vector<double> > &matrixElements) const { matrixElements = _process.sigmaKin(initialMomenta, finalState); }
+  void ComputeWeight(std::vector<double> &weights, std::vector<double> &errors);
+  std::unique_ptr<MEEvent>& GetEvent();
+  void SetEvent(const ROOT::Math::PtEtaPhiEVector &lep1, const ROOT::Math::PtEtaPhiEVector &lep2, const ROOT::Math::PtEtaPhiEVector &bjet1, const ROOT::Math::PtEtaPhiEVector &bjet2, const ROOT::Math::PtEtaPhiEVector &met, LepType lepType);
   void AddTF(const std::string particleName, const std::string histName);
   void AddInitialState(int pid1, int pid2);
   void SetISRCorrection(const ISRCorrection newISRCorrection);
 
   MEWeight(CPPProcess &process, const std::string pdfName, const std::string fileTF);
-  ~MEWeight();
+  ~MEWeight() {};
 
   private:
 
   std::vector< std::pair<int, int> > _initialStates;
   CPPProcess &_process;
-  LHAPDF::PDF* _pdf;
-  MEEvent* _recEvent;
-  TransferFunction* _TF;
+  std::unique_ptr<LHAPDF::PDF> _pdf;
+  std::unique_ptr<MEEvent> _recEvent;
+  std::unique_ptr<TransferFunction> _TF;
   ISRCorrection _isrCorrection;
 };
 
