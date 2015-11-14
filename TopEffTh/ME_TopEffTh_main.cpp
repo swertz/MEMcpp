@@ -106,15 +106,18 @@ int main(int argc, char *argv[])
     chrono.Start();
 
     LepType myLepType(LepType::Unknown);
-    if(IsEE)
+    if(IsEE){
       myLepType = LepType::EE;
-    if(IsMuMu)
+    }else if(IsMuMu){
       myLepType = LepType::MuMu;
-    if(IsEMu){
+    }else if(IsEMu){
       if(std::abs(leadLepPID) == 11)
         myLepType = LepType::EMu;
       else
         myLepType = LepType::MuE;
+    }else{
+      cout << "ERROR: Something went wrong: unknown leptonic decay type.\n";
+      continue;
     }
 
     myWeight->SetEvent(lep1_e, lep2_e, bjet1_e, bjet2_e, met_e, myLepType);

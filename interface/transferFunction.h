@@ -39,7 +39,7 @@ inline double TransferFunction::Evaluate(const std::string &particleName, const 
     exit(1);
   }*/
 
-  return _TF[particleName]->Evaluate(Erec, Egen);
+  return _TF.at(particleName)->Evaluate(Erec, Egen);
 }
 
 inline double TransferFunction::GetDeltaRange(const std::string &particleName, const double &Erec){
@@ -49,7 +49,7 @@ inline double TransferFunction::GetDeltaRange(const std::string &particleName, c
     exit(1);
   }*/
 
-  return _TF[particleName]->GetDeltaRange(Erec);
+  return _TF.at(particleName)->GetDeltaRange(Erec);
 }
 
 inline double TransferFunction::GetDeltaMin(const std::string &particleName, const double &Erec){
@@ -59,7 +59,7 @@ inline double TransferFunction::GetDeltaMin(const std::string &particleName, con
     exit(1);
   }*/
 
-  return _TF[particleName]->GetDeltaMin(Erec);
+  return _TF.at(particleName)->GetDeltaMin(Erec);
 }
 
 inline double TransferFunction::GetDeltaMax(const std::string &particleName, const double &Erec){
@@ -69,7 +69,7 @@ inline double TransferFunction::GetDeltaMax(const std::string &particleName, con
     exit(1);
   }*/
 
-  return _TF[particleName]->GetDeltaMax(Erec);
+  return _TF.at(particleName)->GetDeltaMax(Erec);
 }
 
 #endif
